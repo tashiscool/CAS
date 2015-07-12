@@ -1,0 +1,1 @@
+web: target/universal/stage/bin/CAS -Dhttp.port=$PORT -Dmongodb.uri=$MONGOLAB_URI
