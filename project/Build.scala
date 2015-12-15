@@ -24,11 +24,13 @@ object ApplicationBuild extends Build {
     "com.typesafe.play" %% "play-ws" % "2.3.3",
     "org.webjars" %% "webjars-play" % "2.3.0-3",
     "org.webjars" % "bootstrap" % "3.3.2",
+    "net.spy" % "spymemcached" % "2.11.4" exclude("org.scala-stm", "scala-stm_2.10.0"),
     "com.github.nscala-time" %% "nscala-time" % "1.8.0",
     "org.reactivemongo" %% "play2-reactivemongo" % "0.10.5.0.akka23" exclude("org.scala-stm", "scala-stm_2.10.0"),
     "org.reactivemongo" %% "reactivemongo" % "0.10.5.0.akka23",
     "org.springframework.data" % "spring-data-mongodb" % "1.3.1.RELEASE" exclude("org.scala-stm", "scala-stm_2.10.0"),
     "org.codehaus.jackson" % "jackson-mapper-lgpl" % "1.9.13",
+    "net.codingwell" %% "scala-guice" % "4.0.0" exclude("org.scala-stm", "scala-stm_2.10.0") exclude("com.google.guava", "guava"),
     "com.google.guava" % "guava" % "18.0"
   )
 
