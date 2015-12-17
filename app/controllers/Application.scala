@@ -316,7 +316,7 @@ class Application @Inject()(val casService: CentralAuthenicationService, val ser
       val id3 = UUID.randomUUID().toString
       inMemoryMap.put(id3,request.body.asFormUrlEncoded.getOrElse(Map("username"->List("tashdid@gmail.com"))).get("username").getOrElse(List("tashdid@gmail.com")).headOption.getOrElse("tashdid@gmail.com"))
       val seq =Map("ticket"->List(id3).toSeq)
-      val url = request.cookies.get("serviceLocation").map(_.value).getOrElse("google.com")
+      val url = request.getQueryString("service").getOrElse(request.cookies.get("serviceLocation").map(_.value).getOrElse("google.com"))
       Redirect(url, seq)
     }else{
       val id = UUID.randomUUID().toString
