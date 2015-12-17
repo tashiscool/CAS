@@ -9,9 +9,9 @@ GET         /                                                          @controll
 GET         /assets/*file                                              controllers.Assets.versioned(path="/public", file: Asset)
 
 GET         /sso/login                                                 @controllers.Application.login
-POST         /sso/login                                                 @controllers.Application.realSubmit
+POST        /sso/login                                                 @controllers.Application.realSubmit
 
 GET         /sso/demo                                                   @controllers.Application.demoLogin
-POST         /sso/demo                                                  @controllers.Application.demoDoLogin
+POST        /sso/demo                                                  @controllers.Application.demoDoLogin
 
 GET         /samlValidate                                               @controllers.Application.samlValidate(ticket:Option[String] ?= None)

@@ -14,7 +14,7 @@ import play.Play.autoImport._
 
 object ApplicationBuild extends Build {
 
-  val appName         = "CAS"
+  val appName         = "cas"
   val appVersion      = "0.1"
   val appOrganization    =  "com.authencation"
   val playVersion = "2.3.3"

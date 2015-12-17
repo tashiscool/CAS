@@ -30,7 +30,7 @@ class NeverExpiresExpirationPolicy extends ExpirationPolicy{
 case class RememberMeDelegatingExpirationPolicy(rememberMeExpirationPolicy: ExpirationPolicy,sessionExpirationPolicy: ExpirationPolicy) extends ExpirationPolicy{
   def isExpired(ticketState: TicketState) = {
     val b: Boolean = ticketState.getAuthentication.getAttributes.get(RememberMeCredential.AUTHENTICATION_ATTRIBUTE_REMEMBER_ME).getOrElse(false).asInstanceOf[Boolean]
-    if (b == null || (!b.booleanValue())) {
+    if ((!b.booleanValue())) {
       this.sessionExpirationPolicy.isExpired(ticketState)
     }else{
       this.rememberMeExpirationPolicy.isExpired(ticketState)

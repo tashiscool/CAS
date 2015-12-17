@@ -321,19 +321,21 @@ class Application @Inject()(val casService: CentralAuthenicationService, val ser
     }else{
       val id = UUID.randomUUID().toString
       val id2 = UUID.randomUUID().toString
-      Ok(demoLoginView(id)).withCookies(Cookie("tgt",id),
+      Ok(demoLoginView(id)).withCookies(
         Cookie("serviceLocation", request.queryString("service").headOption.getOrElse("")),
-        Cookie("st", id2)
+        Cookie("tgtTry",id),Cookie("stTry", id2)
       )
     }
 
   }
 
   def demoDoLogin = Action {implicit request=>
-    inMemoryMap.put(request.cookies.get("st").map(_.value).getOrElse("google.com"),request.body.asFormUrlEncoded.get.get("username").getOrElse(List("tashdid@gmail.com")).headOption.getOrElse("tashdid@gmail.com"))
-    val seq =Map("ticket"->List(request.cookies.get("st").map(_.value).getOrElse("google.com")).toSeq)
+    inMemoryMap.put(request.cookies.get("stTry").map(_.value).getOrElse("google.com"),request.body.asFormUrlEncoded.get.get("username").getOrElse(List("tashdid@gmail.com")).headOption.getOrElse("tashdid@gmail.com"))
+    val seq =Map("ticket"->List(request.cookies.get("stTry").map(_.value).getOrElse("google.com")).toSeq)
     val url = request.cookies.get("serviceLocation").map(_.value).getOrElse("google.com")
-    Redirect(url, seq)
+    val id = UUID.randomUUID().toString
+    val id2 = UUID.randomUUID().toString
+    Redirect(url, seq).withCookies(Cookie("tgt",id),Cookie("st", id2))
   }
 
   def samlValidate(ticket:Option[String] = None) = Action{implicit request=>
