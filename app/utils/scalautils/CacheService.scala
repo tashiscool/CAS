@@ -2,7 +2,7 @@ package utils.scalautils
 
 import java.io._
 
-import controllers.cas.{RegisteredService, Service}
+import controllers.cas._
 
 import scala.util.{Failure, Success}
 import net.spy.memcached.internal._
@@ -63,11 +63,15 @@ class CacheServiceImpl extends CacheService {
     val app: Application = implicitly[Application]
     System.setProperty("net.spy.log.LoggerImpl", "services.sapi.Slf4JLogger")
 
+    val username = Option(System.getenv("MEMCACHIER_USERNAME"))
+    val password = Option(System.getenv("MEMCACHIER_PASSWORD"))
+    val endpointOption = Option(System.getenv("MEMCACHIER_SERVERS"))
+
     app.configuration.getString("elasticache.config.endpoint").map { endpoint =>
       new MemcachedClient(AddrUtil.getAddresses(endpoint))
     }.getOrElse {
-      lazy val singleHost = app.configuration.getString("memcached.host").map(AddrUtil.getAddresses)
-      lazy val multipleHosts = app.configuration.getString("memcached.1.host").map { _ =>
+      lazy val singleHost = endpointOption.map(AddrUtil.getAddresses)
+      lazy val multipleHosts = endpointOption.map(AddrUtil.getAddresses).map { _ =>
         def accumulate(nb: Int): String = {
           app.configuration.getString("memcached." + nb + ".host").map { h => h + " " + accumulate(nb + 1) }.getOrElse("")
         }
@@ -77,8 +81,8 @@ class CacheServiceImpl extends CacheService {
       val addrs = singleHost.orElse(multipleHosts)
         .getOrElse(throw new RuntimeException("Bad configuration for memcached: missing host(s)"))
 
-      app.configuration.getString("memcached.user").map { memcacheUser =>
-        val memcachePassword = app.configuration.getString("memcached.password").getOrElse {
+      username.map { memcacheUser =>
+        val memcachePassword = password.getOrElse {
           throw new RuntimeException("Bad configuration for memcached: missing password")
         }
 
@@ -253,5 +257,23 @@ object Keys{
   }
   implicit val registeredServiceGenerator: KeyGenerator[RegisteredService] = new KeyGenerator[RegisteredService] {
     override def apply(sessionId: String, value: RegisteredService): String = s"/$sessionId/registeredService/${value.getId}"
+  }
+  implicit val ticketGrantingTicketGenerator: KeyGenerator[TicketGrantingTicketImpl] = new KeyGenerator[TicketGrantingTicketImpl] {
+    override def apply(sessionId: String, value: TicketGrantingTicketImpl): String = s"/$sessionId/ticketGrantingTicketImpl/${value.getId}"
+  }
+  implicit val serviceTicketGenerator: KeyGenerator[ServiceTicketImpl] = new KeyGenerator[ServiceTicketImpl] {
+    override def apply(sessionId: String, value: ServiceTicketImpl): String = s"/$sessionId/serviceTicketImpl/${value.getId}"
+  }
+  implicit val ticketGenerator: KeyGenerator[Ticket] = new KeyGenerator[Ticket] {
+    override def apply(sessionId: String, value: Ticket): String = s"/$sessionId/Ticket/${value.getId}"
+  }
+  implicit val uspwCredentialsGenerator: KeyGenerator[UsernamePasswordCredential] = new KeyGenerator[UsernamePasswordCredential] {
+    override def apply(sessionId: String, value: UsernamePasswordCredential): String = s"/$sessionId/usernamePassword/${value.id}"
+  }
+  implicit val credentialsGenerator: KeyGenerator[Credentials] = new KeyGenerator[Credentials] {
+    override def apply(sessionId: String, value: Credentials): String = s"/$sessionId/credentials/${value.id}"
+  }
+  implicit val serviceTickGenerator: KeyGenerator[ServiceTicket] = new KeyGenerator[ServiceTicket] {
+    override def apply(sessionId: String, value: ServiceTicket): String = s"/$sessionId/serviceTicket/${value.getId}"
   }
 }

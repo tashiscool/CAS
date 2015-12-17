@@ -1,5 +1,6 @@
 package controllers.cas
 
+import com.google.inject.Inject
 import org.slf4j.{LoggerFactory, Logger}
 
 
@@ -26,11 +27,11 @@ trait AuthenticationManager{
    */
   def authenticate(credentials: Seq[Credentials]): Authentication
 }
-case class PolicyBasedAuthenticationManager(handlers: Seq[AuthenticationHandler], handlerResolverMap: Map[AuthenticationHandler, PrincipalResolver],
-                                            authenticationMetaDataPopulators: List[AuthenticationMetaDataPopulator],
-                                            authenticationPolicy: AuthenticationPolicy) extends AuthenticationManager{
+case class PolicyBasedAuthenticationManager @Inject() (handlers: Seq[AuthenticationHandler], handlerResolverMap: Map[AuthenticationHandler, PrincipalResolver],
+                                            authenticationMetaDataPopulators: List[AuthenticationMetaDataPopulator]) extends AuthenticationManager{
   val logger = LoggerFactory.getLogger(this.getClass)
 
+  val serviceContextAuthenticationPolicyFactory = new AcceptAnyAuthenticationPolicyFactory
   /**
    * Authenticates the provided credentials. On success, an {@link Authentication} object
    * is returned containing metadata about the result of each authenticated credential.
@@ -72,6 +73,7 @@ case class PolicyBasedAuthenticationManager(handlers: Seq[AuthenticationHandler]
   }
   def authenticateInternal(credentials: Seq[Credentials]):AuthenticationBuilder =  {
     val builder: AuthenticationBuilder = new DefaultAuthenticationBuilder(NullPrincipal.apply(Map()))
+    val authenticationPolicy = serviceContextAuthenticationPolicyFactory.createPolicy(null)
     for (c <- credentials) {
       builder.addCredential(new BasicCredentialMetaData(c))
     }
@@ -100,7 +102,7 @@ case class PolicyBasedAuthenticationManager(handlers: Seq[AuthenticationHandler]
             if (principal != null) {
               builder.setPrincipal(principal)
             }
-            if (this.authenticationPolicy.isSatisfiedBy(builder.build)) {
+            if (authenticationPolicy.isSatisfiedBy(builder.build)) {
               return builder
             }
           }
@@ -119,7 +121,7 @@ case class PolicyBasedAuthenticationManager(handlers: Seq[AuthenticationHandler]
     if (builder.getSuccesses.isEmpty) {
       throw new AuthenticationException(builder.getFailures, builder.getSuccesses)
     }
-    if (!this.authenticationPolicy.isSatisfiedBy(builder.build)) {
+    if (authenticationPolicy.isSatisfiedBy(builder.build)) {
       throw new AuthenticationException(builder.getFailures, builder.getSuccesses)
     }
     builder

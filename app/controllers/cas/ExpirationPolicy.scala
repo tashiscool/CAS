@@ -21,7 +21,7 @@ case class MultiTimeUseOrTimeoutExpirationPolicy(numberOfUses: Int, timeToKill: 
   }
 }
 
-object NeverExpiresExpirationPolicy extends ExpirationPolicy{
+class NeverExpiresExpirationPolicy extends ExpirationPolicy{
   def isExpired(ticketState: TicketState):Boolean= {
     false
   }
@@ -29,8 +29,8 @@ object NeverExpiresExpirationPolicy extends ExpirationPolicy{
 
 case class RememberMeDelegatingExpirationPolicy(rememberMeExpirationPolicy: ExpirationPolicy,sessionExpirationPolicy: ExpirationPolicy) extends ExpirationPolicy{
   def isExpired(ticketState: TicketState) = {
-    val b: Boolean = ticketState.getAuthentication.getAttributes.get(RememberMeCredential.AUTHENTICATION_ATTRIBUTE_REMEMBER_ME).asInstanceOf[Boolean]
-    if (b == null || (b == false)) {
+    val b: Boolean = ticketState.getAuthentication.getAttributes.get(RememberMeCredential.AUTHENTICATION_ATTRIBUTE_REMEMBER_ME).getOrElse(false).asInstanceOf[Boolean]
+    if (b == null || (!b.booleanValue())) {
       this.sessionExpirationPolicy.isExpired(ticketState)
     }else{
       this.rememberMeExpirationPolicy.isExpired(ticketState)

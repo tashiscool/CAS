@@ -187,7 +187,8 @@ case class DefaultAuthenticationBuilder(p: Principal,credentials: List[Credentia
    *
    * @return Immutable authentication.
    */
-  override def build: Authentication = this.build
+  override def build: Authentication = new ImmutableAuthentication(this.authenticationDate, this.credentials, this.getPrincipal,
+    this.attributes, this.successes, this.failures)
 
   /**
    * Adds an authentication success to the map of handler names to successful authentication handler results.

@@ -19,6 +19,10 @@ trait Service{
    */
   def setPrincipal(principal: Principal):Service
 
+  def getResponse :Response
+
+  def getOriginalUrl: String
+
   /**
    * Whether the services matches another.
    *
@@ -55,5 +59,9 @@ case class SimpleWebApplicationServiceImpl(id: String, originalUrl: String, arti
    * @param principal the new principal
    */
   override def setPrincipal(principal: Principal): Service = this.copy(principal = Some(principal))
+
+  override def getResponse: Response = responseType
+
+  override def getOriginalUrl: String = originalUrl
 }
 case class Response(attributes:Map[String,String], responseType:Responsed)

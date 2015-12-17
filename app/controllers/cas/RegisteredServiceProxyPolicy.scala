@@ -12,7 +12,7 @@ trait RegisteredServiceProxyPolicy{
    *
    * @return true, if is allowed to proxy
    */
-  def isAllowedToProxy: Boolean
+  def isAllowedToProxy: Boolean =false
 
   /**
    * Determines if the given proxy callback
@@ -22,5 +22,6 @@ trait RegisteredServiceProxyPolicy{
    * @param pgtUrl the pgt url
    * @return true, if url allowed.
    */
-  def isAllowedProxyCallbackUrl(pgtUrl: URL): Boolean
+  def isAllowedProxyCallbackUrl(pgtUrl: URL): Boolean = false
 }
+class RefuseRegisteredServiceProxyPolicy extends RegisteredServiceProxyPolicy

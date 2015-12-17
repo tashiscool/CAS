@@ -4,6 +4,7 @@ import java.security.SecureRandom
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicLong
 
+import com.google.inject.Inject
 import org.apache.commons.lang3.StringUtils
 import org.slf4j.{Logger, LoggerFactory}
 
@@ -104,7 +105,7 @@ object TicketGrantingTicketUniqueTicketIdGenerator extends UniqueTicketIdGenerat
  * @author Scott Battaglia
  * @since 3.0.0
  */
-case class DefaultUniqueTicketIdGenerator(numericGenerator: NumericGenerator,
+case class DefaultUniqueTicketIdGenerator @Inject() (numericGenerator: NumericGenerator,
                val randomStringGenerator: RandomStringGenerator,  val suffix: String) extends UniqueTicketIdGenerator {
   /** The logger instance. */
   protected final val logger: Logger = LoggerFactory.getLogger(this.getClass)

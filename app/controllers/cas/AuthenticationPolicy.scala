@@ -50,7 +50,7 @@ trait ContextualAuthenticationPolicy[T] extends AuthenticationPolicy {
 
 
 
-object AcceptAnyAuthenticationPolicyFactory extends ContextualAuthenticationPolicyFactory[ServiceContext] {
+class AcceptAnyAuthenticationPolicyFactory extends ContextualAuthenticationPolicyFactory[ServiceContext] {
   /**
    * Creates a contextual (presumably stateful) authentication policy based on provided context data.
    *
@@ -59,15 +59,15 @@ object AcceptAnyAuthenticationPolicyFactory extends ContextualAuthenticationPoli
    * @return Contextual authentication policy object. The returned object should be assumed to be stateful
    *         and not thread safe unless explicitly noted otherwise.
    */
-  override def createPolicy(context: ServiceContext): ContextualAuthenticationPolicy[ServiceContext] = {
-    new ContextualAuthenticationPolicy[ServiceContext]() {
-      def getContext: ServiceContext = {
-        context
-      }
+  override def createPolicy(context: ServiceContext): ContextualAuthenticationPolicy[ServiceContext] = new DefaultContextualAuthenticationPolicy(context)
+}
 
-      def isSatisfiedBy(authentication: Authentication): Boolean = {
-        true
-      }
-    }
+class DefaultContextualAuthenticationPolicy(serviceContext: ServiceContext) extends ContextualAuthenticationPolicy[ServiceContext]() {
+  def getContext: ServiceContext = {
+    serviceContext
+  }
+
+  def isSatisfiedBy(authentication: Authentication): Boolean = {
+    true
   }
 }

@@ -1,0 +1,18 @@
+@(originalcall: String, parameters: Map[String, Seq[String]]))
+@import org.apache.commons.lang3.StringEscapeUtils
+<html>
+  <body onload="document.acsForm.submit();">
+    <form name="acsForm" action="@StringEscapeUtils.escapeXml(originalcall)" escapeXml="true" method="post">
+      <div style="display: none">
+      @parameters.map{ entry =>
+        <textarea rows=10 cols=80 name="@StringEscapeUtils.escapeXml(entry._1)">@StringEscapeUtils.escapeXml(entry._2.headOption.getOrElse(""))</textarea>
+      }
+
+      </div>
+      <noscript>
+        <p>You are being redirected to @originalcall. Please click &quot;Continue&quot; to continue your login.</p>
+        <p><input type="submit" value="Continue" /></p>
+      </noscript>
+    </form>
+  </body>
+</html>
