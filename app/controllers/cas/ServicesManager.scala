@@ -1,10 +1,19 @@
 package controllers.cas
 
+import java.net.URL
+
+import akka.util.ReentrantGuard
 import com.google.inject.Inject
 import org.slf4j.LoggerFactory
+import play.Logger
+import play.api.Play
+import play.api.libs.concurrent.Akka
 
-import scala.concurrent.Future
+import scala.concurrent.{duration, Future}
 import play.api.libs.concurrent.Execution.Implicits._
+
+import scala.concurrent.duration.FiniteDuration
+import scala.util.{Failure, Success, Try}
 
 /**
  * Created by tash on 11/23/15.
@@ -59,7 +68,30 @@ trait ServicesManager {
 }
 
 case class DefaultServicesManagerImpl @Inject() (serviceRegistryDao: ServiceRegistryDao, defaultAttributes: List[String] ) extends ServicesManager {
+  import Play.current
   private val LOGGER = LoggerFactory.getLogger(classOf[DefaultServicesManagerImpl] )
+
+  //todo: redo this with while(wait);
+  val cacheLock = new ReentrantGuard
+
+  val one = 1
+  val five = 5
+
+  Akka.system.scheduler.schedule(FiniteDuration(1,duration.SECONDS), FiniteDuration(5,duration.SECONDS)) {
+    Logger.trace("Clearing chat status cache")
+    cacheLock.withGuard {
+      Try(this.load) match {
+        case Success(_) if(services.isEmpty) =>
+          val registeredService = RegisteredServiceImpl(serviceId = "http://google.com", name="1", theme="sso", id = 1, description = "dumb protected content", evaluationOrder = 0,
+            logo = new URL("http://google.com"), logoutUrl = new URL("http://google.com"),publicKey=null)
+          services.put(1,registeredService)
+        case Failure(e) if(services.isEmpty) => Logger.error(s"Error clearing chat status cache", e)
+          val registeredService = RegisteredServiceImpl(serviceId = "1", name="1", theme="sso", id = 1, description = "dumb protected content", evaluationOrder = 0,
+            logo = new URL("http://google.com"), logoutUrl = new URL("http://google.com"),publicKey=null)
+          services.put(1,registeredService)
+      }
+    }
+  }
 
   /** Map to store all services. */
   private val services = collection.mutable.Map.empty[Long, RegisteredService]
@@ -67,7 +99,7 @@ case class DefaultServicesManagerImpl @Inject() (serviceRegistryDao: ServiceRegi
   def delete (id: Long): Future[RegisteredService] = {
     val r: Future[RegisteredService] = findServiceBy(id)
     r.flatMap{ s =>
-      this.serviceRegistryDao.delete(s).map{_ => this.services.remove(id); s}
+      this.serviceRegistryDao.delete(s).map{_ => cacheLock.withGuard(this.services.remove(id)); s}
     }
   }
 
@@ -75,11 +107,11 @@ case class DefaultServicesManagerImpl @Inject() (serviceRegistryDao: ServiceRegi
    * {@inheritDoc}
    */
   def findServiceBy(service: Service): Future[RegisteredService] = {
-    Future.successful(services.values.find(x => x.matches(service) ).getOrElse(null))
+    Future.successful(cacheLock.withGuard(services.values.find(x => x.matches(service)) ).getOrElse(null))
   }
 
   def findServiceBy(id: Long): Future[RegisteredService] = {
-    Future.successful(services.find{case (x,y) => x == id}.map(_._2).getOrElse(null))
+    Future.successful(cacheLock.withGuard(services.find{case (x,y) => x == id}.map(_._2)).getOrElse(null))
   }
 
 
@@ -89,7 +121,7 @@ case class DefaultServicesManagerImpl @Inject() (serviceRegistryDao: ServiceRegi
 
   def save (registeredService: RegisteredService): Future[RegisteredService] = {
     this.serviceRegistryDao.save(registeredService).map{ x =>
-      this.services.put(x.getId, x);
+      cacheLock.withGuard(this.services.put(x.getId, x))
       x
     }
   }
@@ -119,7 +151,7 @@ case class DefaultServicesManagerImpl @Inject() (serviceRegistryDao: ServiceRegi
    *
    * @return the collection of all services.
    */
-  override def getAllServices: Future[Seq[RegisteredService]] = Future.successful(this.services.values.toSeq)
+  override def getAllServices: Future[Seq[RegisteredService]] = Future.successful(cacheLock.withGuard(this.services.values.toSeq))
 }
 
 

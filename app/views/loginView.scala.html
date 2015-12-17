@@ -1,5 +1,39 @@
-@(somethid: String)
+@(loginTicket: String)
 <html>
   <body>
+    <form action="@controllers.routes.Application.realSubmit" method="POST" name="loginForm" id="loginForm" class="form-horizontal pull-left col-xs-12" novalidate>
+      <div class="col-xs-12 pull-left">
+          <!--left column beginning-->
+        <div class="col-xs-12 col-sm-8 col-sm-offset-2">
+          <div class="form-group">
+            <label for="email" class="control-label">Username</label>
+            <input type="email" id="email" class="form-control input-lg" name="username"
+            value="tashdid@@gmail.com">
+          </div>
+          <div class="form-group">
+            <label for="password" class="control-label">Password</label>
+            <input type="password" id="password" autocomplete="off" class="form-control input-lg" name="password" value="password1">
+          </div>
+            <div class="form-group">
+                <input type="hidden" name="lt" value="@loginTicket" />
+            </div>
+          <div class="form-group">
+            <button class="btn btn--lg btn--primary btn--block margin-top--10px" type="submit" name="log-in">
+            Login
+            </button>
+          </div>
+          <div class="row">
+            <div class="row">
+              <div class="col-xs-12">
+                <input type="checkbox" value="remember-Me" name="rememberMe" id="rememberMe">
+                <label class="checkbox" id="remember-me-label" for="rememberMe">Remember Me</label><span></span>
+
+              </div>
+            </div>
+
+          </div>
+        </div>
+        </div>
+    </form>
   </body>
 </html>

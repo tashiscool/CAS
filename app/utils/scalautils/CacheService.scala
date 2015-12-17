@@ -253,19 +253,19 @@ trait KeyGenerator[A] {
 
 object Keys{
   implicit val serviceGenerator: KeyGenerator[Service] = new KeyGenerator[Service] {
-    override def apply(sessionId: String, value: Service): String = s"/$sessionId/service/${value.getId}"
+    override def apply(sessionId: String, value: Service): String = s"/$sessionId/service/${NullSafe(value.getId).getOrElse("")}"
   }
   implicit val registeredServiceGenerator: KeyGenerator[RegisteredService] = new KeyGenerator[RegisteredService] {
-    override def apply(sessionId: String, value: RegisteredService): String = s"/$sessionId/registeredService/${value.getId}"
+    override def apply(sessionId: String, value: RegisteredService): String = s"/$sessionId/registeredService/${NullSafe(value.getId.toString).getOrElse("")}"
   }
   implicit val ticketGrantingTicketGenerator: KeyGenerator[TicketGrantingTicketImpl] = new KeyGenerator[TicketGrantingTicketImpl] {
-    override def apply(sessionId: String, value: TicketGrantingTicketImpl): String = s"/$sessionId/ticketGrantingTicketImpl/${value.getId}"
+    override def apply(sessionId: String, value: TicketGrantingTicketImpl): String = s"/$sessionId/ticketGrantingTicketImpl/${NullSafe(value.getId).getOrElse("")}"
   }
   implicit val serviceTicketGenerator: KeyGenerator[ServiceTicketImpl] = new KeyGenerator[ServiceTicketImpl] {
-    override def apply(sessionId: String, value: ServiceTicketImpl): String = s"/$sessionId/serviceTicketImpl/${value.getId}"
+    override def apply(sessionId: String, value: ServiceTicketImpl): String = s"/$sessionId/serviceTicketImpl/${NullSafe(value.getId).getOrElse("")}"
   }
   implicit val ticketGenerator: KeyGenerator[Ticket] = new KeyGenerator[Ticket] {
-    override def apply(sessionId: String, value: Ticket): String = s"/$sessionId/Ticket/${value.getId}"
+    override def apply(sessionId: String, value: Ticket): String = s"/$sessionId/Ticket/${NullSafe(value.getId).getOrElse("")}"
   }
   implicit val uspwCredentialsGenerator: KeyGenerator[UsernamePasswordCredential] = new KeyGenerator[UsernamePasswordCredential] {
     override def apply(sessionId: String, value: UsernamePasswordCredential): String = s"/$sessionId/usernamePassword/${value.id}"
@@ -274,6 +274,6 @@ object Keys{
     override def apply(sessionId: String, value: Credentials): String = s"/$sessionId/credentials/${value.id}"
   }
   implicit val serviceTickGenerator: KeyGenerator[ServiceTicket] = new KeyGenerator[ServiceTicket] {
-    override def apply(sessionId: String, value: ServiceTicket): String = s"/$sessionId/serviceTicket/${value.getId}"
+    override def apply(sessionId: String, value: ServiceTicket): String = s"/$sessionId/serviceTicket/${NullSafe(value.getId).getOrElse("")}"
   }
 }

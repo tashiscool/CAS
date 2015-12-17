@@ -179,7 +179,8 @@ case class RegisteredServiceImpl(serviceId:String, name:String, theme:String, id
    */
 
   def matches(service: Service): Boolean = {
-    service != null && PATH_MATCHER.`match`(serviceId.toLowerCase, service.getId.toLowerCase)
+    System.out.println(s"Something ${service} $this")
+    service != null && PATH_MATCHER.`match`(serviceId.toLowerCase, service.getOriginalUrl.toLowerCase)
   }
 
   protected def newInstance: RegisteredServiceImpl = {
