@@ -10,3 +10,8 @@ GET         /assets/*file                                              controlle
 
 GET         /sso/login                                                 @controllers.Application.login
 POST         /sso/login                                                 @controllers.Application.realSubmit
+
+GET         /sso/demo                                                   @controllers.Application.demoLogin
+POST         /sso/demo                                                  @controllers.Application.demoDoLogin
+
+GET         /samlValidate                                               @controllers.Application.samlValidate(ticket:Option[String] ?= None)

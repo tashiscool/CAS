@@ -12,7 +12,7 @@ import play.api.mvc._
 import utils.scalautils.{NullSafe, Keys, CacheOps, CacheService}
 import play.api.libs.concurrent.Execution.Implicits._
 import utils.scalautils.Keys._
-import views.html.{autoredirector, loginView, genericSuccessView}
+import views.html._
 
 import scala.concurrent.Future
 
@@ -307,6 +307,31 @@ class Application @Inject()(val casService: CentralAuthenicationService, val ser
     bloatedServices.onComplete(_ => logger.debug("we're done setting up the services in memcache"))
     bloatedServices
   }
+
+ val inMemoryMap = scala.collection.mutable.Map[String,String]()
+
+  def demoLogin = Action{ implicit request=>
+    val id = UUID.randomUUID().toString
+    val id2 = UUID.randomUUID().toString
+    Ok(demoLoginView(id)).withCookies(Cookie("tgt",id),
+      Cookie("serviceLocation", request.queryString("service").headOption.getOrElse("")),
+      Cookie("st", id2)
+    )
+  }
+
+  def demoDoLogin = Action {implicit request=>
+    inMemoryMap.put(request.cookies.get("st").map(_.value).getOrElse("google.com"),request.body.asFormUrlEncoded.get.get("username").getOrElse(List("tashdid@gmail.com")).headOption.getOrElse("tashdid@gmail.com"))
+    val seq =Map("ticket"->List(request.cookies.get("st").map(_.value).getOrElse("google.com")).toSeq)
+    val url = request.cookies.get("serviceLocation").map(_.value).getOrElse("google.com")
+    Redirect(url, seq)
+  }
+
+  def samlValidate(ticket:Option[String] = None) = Action{implicit request=>
+    if(StringUtils.isNotBlank(ticket.getOrElse("")))
+      Ok(sampleResponse(inMemoryMap.get(ticket.getOrElse("")).getOrElse(""))).withHeaders("Content-type"->"application/xml")
+    else
+      NotFound
+  }
 }
 
 object WebUtils {
@@ -387,6 +412,4 @@ object WebUtils {
   def putRegisteredService(context: Request[AnyContent], registeredService: RegisteredService)(implicit cacheService: CacheService) =
     CacheOps.caching(context.getQueryString("sessionId").getOrElse(""))(registeredService)
 }
-
-
 
