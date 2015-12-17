@@ -311,9 +311,10 @@ class Application @Inject()(val casService: CentralAuthenicationService, val ser
  val inMemoryMap = scala.collection.mutable.Map[String,String]()
 
   def demoLogin = Action{ implicit request=>
-    if(!StringUtils.isNotBlank(request.cookies.get("tgt").map(_.value).getOrElse(""))){
+    val tgt = request.cookies.get("tgt").map(_.value).getOrElse("")
+    if(StringUtils.isNotBlank(tgt)){
       val id3 = UUID.randomUUID().toString
-      inMemoryMap.put(id3,request.body.asFormUrlEncoded.get.get("username").getOrElse(List("tashdid@gmail.com")).headOption.getOrElse("tashdid@gmail.com"))
+      inMemoryMap.put(id3,request.body.asFormUrlEncoded.getOrElse(Map("username"->List("tashdid@gmail.com"))).get("username").getOrElse(List("tashdid@gmail.com")).headOption.getOrElse("tashdid@gmail.com"))
       val seq =Map("ticket"->List(id3).toSeq)
       val url = request.cookies.get("serviceLocation").map(_.value).getOrElse("google.com")
       Redirect(url, seq)
