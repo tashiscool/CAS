@@ -45,14 +45,14 @@ case class DefaultRegisteredServiceAccessStrategy(requiredAttributes:Map[String,
    *
    * @return true/false if service is enabled
    */
-  override def isServiceAccessAllowed: Boolean = ???
+  override def isServiceAccessAllowed: Boolean = true
 
   /**
    * Assert that the service can participate in sso.
    *
    * @return true/false if service can participate in sso
    */
-  override def isServiceAccessAllowedForSso: Boolean = ???
+  override def isServiceAccessAllowedForSso: Boolean = true
 
   /**
    * Verify authorization policy by checking the pre-configured rules
