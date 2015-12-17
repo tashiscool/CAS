@@ -164,13 +164,12 @@ case class RegisteredServiceImpl(serviceId:String, name:String, theme:String, id
                                  val usernameAttributeProvider:RegisteredServiceUsernameAttributeProvider = new DefaultRegisteredServiceUsernameProvider(),
                                  val attributeReleasePolicy:AttributeReleasePolicy = new ReturnAllowedAttributeReleasePolicy(List.empty[String], Map()),
                                  val accessStrategy:RegisteredServiceAccessStrategy = new DefaultRegisteredServiceAccessStrategy(Map()),
-                                 val publicKey:RegisteredServicePublicKey ) extends RegisteredService {
+                                 val publicKey:RegisteredServicePublicKey = new DefaultRegisteredServicePublicKey ) extends RegisteredService {
 
 
 
   /** Unique Id for serialization. */
   private val serialVersionUID: Long = -5906102762271197627L
-  private val PATH_MATCHER: PathMatcher = new AntPathMatcher
 
   /**
    * @deprecated As of 4.1. Consider using regex patterns instead
@@ -180,7 +179,7 @@ case class RegisteredServiceImpl(serviceId:String, name:String, theme:String, id
 
   def matches(service: Service): Boolean = {
     System.out.println(s"Something ${service} $this")
-    service != null && PATH_MATCHER.`match`(serviceId.toLowerCase, service.getOriginalUrl.toLowerCase)
+    service != null && CheckMatch.matches(serviceId.toLowerCase, service.getOriginalUrl.toLowerCase)
   }
 
   protected def newInstance: RegisteredServiceImpl = {
@@ -313,4 +312,9 @@ case class RegisteredServiceImpl(serviceId:String, name:String, theme:String, id
    * @return the logout type of the service.
    */
   override def getLogoutType: LogoutType = logoutType
+}
+
+object CheckMatch {
+  private val PATH_MATCHER: PathMatcher = new AntPathMatcher
+  def matches(one:String, two:String)=PATH_MATCHER.`match`(one,two)
 }

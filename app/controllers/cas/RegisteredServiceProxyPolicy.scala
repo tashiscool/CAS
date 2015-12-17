@@ -24,4 +24,4 @@ trait RegisteredServiceProxyPolicy{
    */
   def isAllowedProxyCallbackUrl(pgtUrl: URL): Boolean = false
 }
-class RefuseRegisteredServiceProxyPolicy extends RegisteredServiceProxyPolicy
+class RefuseRegisteredServiceProxyPolicy extends RegisteredServiceProxyPolicy with Serializable

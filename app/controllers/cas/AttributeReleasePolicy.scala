@@ -36,7 +36,7 @@ trait AttributeReleasePolicy{
   def getAttributes(p: Principal): Map[String, AnyRef]
 }
 
-case class ReturnAllowedAttributeReleasePolicy(allowedAttributes: List[String], filter: (Map[String, AnyRef]) => Map[String, AnyRef]) extends AttributeReleasePolicy{
+case class ReturnAllowedAttributeReleasePolicy(allowedAttributes: List[String], filter: (Map[String, AnyRef]) => Map[String, AnyRef]) extends AttributeReleasePolicy  with Serializable{
 
   protected def getAttributesInternal(resolvedAttributes: Map[String, AnyRef]): Map[String, AnyRef] = {
     resolvedAttributes.filter{case(x,y) => allowedAttributes.contains(x)}

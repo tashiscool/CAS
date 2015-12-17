@@ -15,7 +15,7 @@ trait RegisteredServiceUsernameAttributeProvider{
    */
   def resolveUsername(principal: Principal, service: Service): String
 }
-class DefaultRegisteredServiceUsernameProvider extends RegisteredServiceUsernameAttributeProvider {
+class DefaultRegisteredServiceUsernameProvider extends RegisteredServiceUsernameAttributeProvider with Serializable  {
   /**
    * Resolve the username that is to be returned to CAS clients.
    *

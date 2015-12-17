@@ -34,7 +34,7 @@ trait RegisteredServiceAccessStrategy{
    */
   def doPrincipalAttributesAllowServiceAccess(principalAttributes: Map[String, AnyRef]): Boolean
 }
-case class DefaultRegisteredServiceAccessStrategy(requiredAttributes:Map[String, Set[String]]) extends RegisteredServiceAccessStrategy {
+case class DefaultRegisteredServiceAccessStrategy(requiredAttributes:Map[String, Set[String]]) extends RegisteredServiceAccessStrategy with Serializable {
 
   val requireAllAttributes = false
 
