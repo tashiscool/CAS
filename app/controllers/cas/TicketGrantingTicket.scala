@@ -200,9 +200,8 @@ case class TicketGrantingTicketImpl(override val expirationPolicy: ExpirationPol
     val serviceTicket: ServiceTicket = new ServiceTicketImpl(id = id, ticketGrantingTicket = Some(this), service = service, fromNewLogin = logn, expirationPolicy = expirationPolicy)
 
     val authentications: List[Authentication] = getChainedAuthentications
-    service.setPrincipal(authentications(authentications.size - 1).getPrincipal)
 
-    val ticket = updateState.copy(services = services+(id-> service))
+    val ticket = updateState.copy(services = services+(id-> service.setPrincipal(authentications(authentications.size - 1).getPrincipal)))
 
     (serviceTicket, ticket)
   }

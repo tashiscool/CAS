@@ -204,8 +204,7 @@ class CentralAuthenticationServiceImpl @Inject() (val ticketGrantingTicketExpira
           @SuppressWarnings(Array("unchecked")) val attributesToRelease: Map[String, AnyRef] = if (attributePolicy != null) attributePolicy.getAttributes(principal) else Map.empty[String, AnyRef]
           val principalId: String = registeredService.getUsernameAttributeProvider.resolveUsername(principal, service)
           val modifiedPrincipal: Principal = this.principalFactory.createPrincipal(principalId, attributesToRelease)
-          val builder: AuthenticationBuilder = DefaultAuthenticationBuilder.newInstance(authentication)
-          builder.setPrincipal(modifiedPrincipal)
+          val builder: AuthenticationBuilder = DefaultAuthenticationBuilder.newInstance(authentication).setPrincipal(modifiedPrincipal)
           new ImmutableAssertion(builder.build, serviceTicket.getGrantingTicket.get.getChainedAuthentications, serviceTicket.getService, serviceTicket.isFromNewLogin)
         } finally {
           if (serviceTicket.isExpired) {

@@ -8,8 +8,6 @@ import org.springframework.util.{AntPathMatcher, PathMatcher}
  * Interface for a service that can be registered by the Services Management
  * interface.
  *
- * @author Scott Battaglia
- * @since 3.1
  */
 trait RegisteredService extends Serializable {
   val INITIAL_IDENTIFIER_VALUE: Long = Long.MaxValue

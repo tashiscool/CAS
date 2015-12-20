@@ -24,9 +24,7 @@ trait UniqueTicketIdGenerator {
 /**
  * Interface to return a random String.
  *
- * @author Scott Battaglia
 
- * @since 3.0.0
  */
 trait RandomStringGenerator {
   /**
@@ -55,9 +53,7 @@ trait RandomStringGenerator {
 /**
  * Interface to return a new sequential number for each call.
  *
- * @author Scott Battaglia
 
- * @since 3.0.0
  */
 trait NumericGenerator {
   /**
@@ -102,8 +98,6 @@ object TicketGrantingTicketUniqueTicketIdGenerator extends UniqueTicketIdGenerat
  * Tickets are of the form [PREFIX]-[SEQUENCE NUMBER]-[RANDOM STRING]-[SUFFIX]
  * </p>
  *
- * @author Scott Battaglia
- * @since 3.0.0
  */
 case class DefaultUniqueTicketIdGenerator @Inject() (numericGenerator: NumericGenerator,
                val randomStringGenerator: RandomStringGenerator,  val suffix: String) extends UniqueTicketIdGenerator {
@@ -131,9 +125,7 @@ case class DefaultUniqueTicketIdGenerator @Inject() (numericGenerator: NumericGe
 /**
  * Interface to guaranteed to return a long.
  *
- * @author Scott Battaglia
 
- * @since 3.0.0
  */
 trait LongNumericGenerator extends NumericGenerator {
   /**
@@ -187,9 +179,7 @@ case class DefaultLongNumericGenerator(initialValue: Long) extends LongNumericGe
  * Implementation of the RandomStringGenerator that allows you to define the
  * length of the random part.
  *
- * @author Scott Battaglia
 
- * @since 3.0.0
  */
 
 case class DefaultRandomStringGenerator(maxRandomLength: Int) extends RandomStringGenerator {
