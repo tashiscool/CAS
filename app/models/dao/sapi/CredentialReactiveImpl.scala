@@ -41,6 +41,7 @@ import com.mongodb._
 
 case class UserCrendential(id: String, userId: String, lookupValues: Map[String,String])
 
+
 trait UserCrendentialDaoReactive {
   def createUserCrendential(userCrendential: UserCrendential): Future[LastError]
 
@@ -49,6 +50,8 @@ trait UserCrendentialDaoReactive {
 
 }
 class UserCrendentialDaoReactiveImpl extends UserCrendentialDaoReactive{
+  implicit val personReads = Json.reads[UserCrendential]
+  implicit val personWrites = Json.writes[UserCrendential]
   val conf = Play.configuration
   val DB_NAME = "db"
   val UserCrendentialCollectionNameString: String = "UserCrendentials"
@@ -113,7 +116,7 @@ class UserCrendentialDaoReactiveImpl extends UserCrendentialDaoReactive{
     }
   }
 
-  override def createUserCrendential(userCrendential: UserCrendential): Future[LastError] = ???
+  override def createUserCrendential(userCrendential: UserCrendential): Future[LastError] = collection.save(userCrendential)
 
-  override def getUserCrendentialByQ(name: String): Future[Option[UserCrendential]] = ???
+  override def getUserCrendentialByQ(name: String): Future[Option[UserCrendential]] = getSurveyByQueryString(Map("lookupValues.username" -> List(name) )).map(_.headOption)
 }

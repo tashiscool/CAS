@@ -120,7 +120,7 @@ case class PolicyBasedAuthenticationManager @Inject() (handlers: Seq[Authenticat
             }
             catch {
               case e: Exception => {
-                logger.error(s"${ handler.getName}: ${e.getMessage}  (Details: ${e.getCause.getMessage})")
+                logger.error(s"${ handler.getName}: ${e.getMessage}  (Details: ${e})")
                 Future.successful(builder.addFailure(handler.getName, e.getClass))
               }
             }
