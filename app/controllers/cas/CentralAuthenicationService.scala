@@ -135,11 +135,13 @@ class CentralAuthenticationServiceImpl @Inject() (val ticketGrantingTicketExpira
     val sanitizedCredentials: Set[Credentials] = credentials.filterNot{case x => (x == null) }.toSet
     if (!sanitizedCredentials.isEmpty) {
       val idForTicket = ticketGrantingTicketUniqueTicketIdGenerator.getNewTicketId(TicketGrantingTicketImpl.getClass.getName)
-      val authentication: Authentication = this.authenticationManager.authenticate(credentials)
-      val ticketGrantingTicket = TicketGrantingTicketImpl(id = idForTicket, proxiedBy = None, ticketGrantingTicket = None,
-        authentication =  authentication, expirationPolicy =ticketGrantingTicketExpirationPolicy)
-      this.ticketRegistry.addTicket(ticketGrantingTicket).map{
-        _ => ticketGrantingTicket
+      val authenticationF: Future[Authentication] = this.authenticationManager.authenticate(credentials)
+      authenticationF.flatMap{ authentication =>
+        val ticketGrantingTicket = TicketGrantingTicketImpl(id = idForTicket, proxiedBy = None, ticketGrantingTicket = None,
+          authentication =  authentication, expirationPolicy =ticketGrantingTicketExpirationPolicy)
+        this.ticketRegistry.addTicket(ticketGrantingTicket).map{
+          _ => ticketGrantingTicket
+        }
       }
     }else{
       val msg: String = "No credentials were specified in the request for creating a new ticket-granting ticket"
@@ -248,7 +250,8 @@ class CentralAuthenticationServiceImpl @Inject() (val ticketGrantingTicketExpira
 
         var currentAuthentication: Authentication = null
         if (sanitizedCredentials.size > 0) {
-          currentAuthentication = this.authenticationManager.authenticate(sanitizedCredentials.toSeq)
+          this.authenticationManager.authenticate(sanitizedCredentials.toSeq).map{
+            currentAuthentication =>
           val original: Authentication = ticketGrantingTicket.getAuthentication
           if (!(currentAuthentication.getPrincipal == original.getPrincipal)) {
             throw new MixedPrincipalException(currentAuthentication, currentAuthentication.getPrincipal, original.getPrincipal)
@@ -257,7 +260,8 @@ class CentralAuthenticationServiceImpl @Inject() (val ticketGrantingTicketExpira
             case tgt: TicketGrantingTicketImpl => tgt.copy(supplementalAuthentications = tgt.getSupplementalAuthentications.::(currentAuthentication))
           }
           //todo: do something with new ticket
-        }
+          }
+        }else{Future.successful(currentAuthentication)}
 
         if (currentAuthentication == null && !registeredService.getAccessStrategy.isServiceAccessAllowedForSso) {
           logger.warn(s"ServiceManagement: Service [${service.getId}] is not allowed to use SSO.")
@@ -325,7 +329,7 @@ class CentralAuthenticationServiceImpl @Inject() (val ticketGrantingTicketExpira
       }
 
       val registeredServiceFuture: Future[RegisteredService] = this.servicesManager.findServiceBy(serviceTicket.getService)
-      registeredServiceFuture.map{
+      registeredServiceFuture.flatMap{
         registeredService =>
           verifyRegisteredServiceProperties(registeredService, serviceTicket.getService)
 
@@ -334,16 +338,17 @@ class CentralAuthenticationServiceImpl @Inject() (val ticketGrantingTicketExpira
             throw new UnauthorizedProxyingException(s"ServiceManagement: Service ${serviceTicket.getService.getId} attempted to proxy, but is not allowed.")
           }
 
-          val authentication: Authentication = this.authenticationManager.authenticate(credentials)
+          val authenticationF: Future[Authentication] = this.authenticationManager.authenticate(credentials)
+          authenticationF.map{authentication=>
+            val pgtId: String = this.ticketGrantingTicketUniqueTicketIdGenerator.getNewTicketId(TicketGrantingTicket.PROXY_GRANTING_TICKET_PREFIX)
+            val proxyGrantingTicket: TicketGrantingTicket = serviceTicket.grantTicketGrantingTicket(pgtId, authentication, this.ticketGrantingTicketExpirationPolicy)._1
 
-          val pgtId: String = this.ticketGrantingTicketUniqueTicketIdGenerator.getNewTicketId(TicketGrantingTicket.PROXY_GRANTING_TICKET_PREFIX)
-          val proxyGrantingTicket: TicketGrantingTicket = serviceTicket.grantTicketGrantingTicket(pgtId, authentication, this.ticketGrantingTicketExpirationPolicy)._1
-
-          logger.debug(s"Generated proxy granting ticket [${proxyGrantingTicket}] based off of [${serviceTicketId}]")
-          proxyGrantingTicket match {
-            case proxyGTicket:Ticket =>this.ticketRegistry.addTicket(proxyGTicket)
+            logger.debug(s"Generated proxy granting ticket [${proxyGrantingTicket}] based off of [${serviceTicketId}]")
+            proxyGrantingTicket match {
+              case proxyGTicket:Ticket =>this.ticketRegistry.addTicket(proxyGTicket)
+            }
+            proxyGrantingTicket
           }
-          proxyGrantingTicket
       }
 
     case _ => logger.debug(s"ServiceTicket [${serviceTicketId}] has expired or cannot be found in the ticket registry")
