@@ -4,6 +4,7 @@ import com.google.inject.Inject
 import org.slf4j.{LoggerFactory, Logger}
 import scala.collection.JavaConversions._
 import scala.concurrent.Future
+import play.api.libs.concurrent.Execution.Implicits._
 
 
 /**

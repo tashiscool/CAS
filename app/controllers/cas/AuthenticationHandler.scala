@@ -8,6 +8,7 @@ import org.apache.commons.lang3.StringUtils
 import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.Future
+import play.api.libs.concurrent.Execution.Implicits._
 
 /**
  * Created by tash on 11/24/15.
@@ -69,7 +70,7 @@ case class PrincipalBearingCredentialsAuthenticationHandler(principalFactory: Pr
   private val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
   def authenticate(credential: Credentials): Future[HandlerResult] = {
-    logger.debug("Trusting credential for: {}", credential)
+    logger.debug(s"Trusting credential for: ${credential}")
     return Future.successful(new DefaultHandlerResult(this, credential.asInstanceOf[PrincipalBearingCredential], this.principalFactory.createPrincipal(credential.id)))
   }
 
@@ -168,7 +169,7 @@ trait AbstractPreAndPostProcessingAuthenticationHandler extends AbstractAuthenti
 case class QueryDatabaseAuthenticationHandler(principalFactory: PrincipalFactory, passwordEncoder: PasswordEncoder = new PlainTextPasswordEncoder,
   principalNameTransformer: PrincipalNameTransformer = new NoOpPrincipalNameTransformer, passwordPolicyConfiguration: PasswordPolicyConfiguration = null,
                                               credentialsReactive: UserCrendentialDaoReactive, name:String = "") extends AbstractPreAndPostProcessingAuthenticationHandler {
-  @NotNull private var sql: String = null
+  private var sql: String = null
 
   def failedUserLookup: HandlerResult = throw new AccountNotFoundException("User/password not valid.")
 

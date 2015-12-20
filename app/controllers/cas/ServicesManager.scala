@@ -143,7 +143,7 @@ case class DefaultServicesManagerImpl @Inject() (serviceRegistryDao: ServiceRegi
       LOGGER.debug (s"Adding registered service ${serviceMap}")
       this.services.putAll(serviceMap)
     }
-    LOGGER.info ("Loaded {} services.", this.services.size)
+    LOGGER.info (s"Loaded ${this.services.size} services.")
   }
 
   /**

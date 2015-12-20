@@ -97,7 +97,7 @@ class Application @Inject()(val casService: CentralAuthenicationService, val ser
 
   def generateLoginTicket = { request: Request[AnyContent] =>
     val loginTicket: String = this.ticketIdGenerator.getNewTicketId(TicketGrantingTicket.PREFIX)
-    logger.debug("Generated login ticket {}", loginTicket)
+    logger.debug(s"Generated login ticket ${loginTicket}")
     val credentialId = UUID.randomUUID().toString
     val newCredential = UsernamePasswordCredential(credentialId, "", "")
     //    WebUtils.saveCredentialsWithLoginTicket(newCredential,request, loginTicket, Ok(loginView))
@@ -296,11 +296,11 @@ class Application @Inject()(val casService: CentralAuthenicationService, val ser
     val context = request
     val service: Service = WebUtils.getArgumentsExtractors(context)
     val futureServices = if (service != null) {
-      logger.debug("Placing service in context scope: [{}]", service.getId)
+      logger.debug(s"Placing service in context scope: [${service.getId}]" )
       val registeredServiceFuture: Future[RegisteredService] = servicesManager.findServiceBy(service)
       registeredServiceFuture.flatMap{ registeredService =>
         if (registeredService != null && registeredService.getAccessStrategy.isServiceAccessAllowed) {
-          logger.debug("Placing registered service [{}] with id [{}] in context scope", registeredService.getServiceId, registeredService.getId)
+          logger.debug(s"Placing registered service [${registeredService.getServiceId}] with id [${registeredService.getId}] in context scope")
           WebUtils.putRegisteredService(context, registeredService)
         }else{
           Future.successful()

@@ -4,6 +4,7 @@ import models.dao.sapi.{ValueHelper, User, UserDaoReactive}
 import org.slf4j.{LoggerFactory, Logger}
 
 import scala.concurrent.Future
+import play.api.libs.concurrent.Execution.Implicits._
 
 /**
  * Created by tash on 11/24/15.
@@ -113,7 +114,7 @@ case class PersonDirectoryPrincipalResolver(returnNullIfNoAttributes: Boolean = 
       logger.debug("Got null for extracted principal ID; returning null.")
       return null
     }
-    logger.debug("Creating SimplePrincipal for [{}]", principalId)
+    logger.debug(s"Creating SimplePrincipal for [${principalId}]")
     val personAttributesF: Future[Option[User]] = userDaoReactive.getUserById(principalId)
     personAttributesF.map{ case Some(personAttributes) if (personAttributes != null) =>
       val attributes = personAttributes.attributes
@@ -129,12 +130,12 @@ case class PersonDirectoryPrincipalResolver(returnNullIfNoAttributes: Boolean = 
          val values =  ValueHelper.flattenValue(value)
           if (key.equalsIgnoreCase(this.principalAttributeName)) {
             if (values.isEmpty) {
-              logger.debug("{} is empty, using {} for principal", this.principalAttributeName, principalId)
+              logger.debug(s"${this.principalAttributeName} is empty, using ${principalId} for principal")
               mappedValues
             }
             else {
               principalId = values.headOption.getOrElse("")
-              logger.debug("Found principal attribute value {}; removing {} from attribute map.", principalId, this.principalAttributeName)
+              logger.debug(s"Found principal attribute value ${principalId}; removing ${this.principalAttributeName} from attribute map." )
               mappedValues
             }
           }

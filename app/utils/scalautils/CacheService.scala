@@ -265,6 +265,9 @@ object Keys{
   implicit val serviceTicketGenerator: KeyGenerator[ServiceTicketImpl] = new KeyGenerator[ServiceTicketImpl] {
     override def apply(sessionId: String, value: ServiceTicketImpl): String = s"/$sessionId/serviceTicketImpl/${NullSafe(value.getId).getOrElse("")}"
   }
+  implicit val baseTicketGenerator: KeyGenerator[BaseTicket] = new KeyGenerator[BaseTicket] {
+    override def apply(sessionId: String, value: BaseTicket): String = s"/$sessionId/baseTicketImpl/${NullSafe(value.getId).getOrElse("")}"
+  }
   implicit val ticketGenerator: KeyGenerator[Ticket] = new KeyGenerator[Ticket] {
     override def apply(sessionId: String, value: Ticket): String = s"/$sessionId/Ticket/${NullSafe(value.getId).getOrElse("")}"
   }
