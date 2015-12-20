@@ -39,7 +39,7 @@ class Application @Inject()(val casService: CentralAuthenicationService, val ser
       if(StringUtils.isBlank(tgtId)){
         gatewayRequestCheck(request)
       }else {
-        val someTicketFuture:Future[Option[BaseTicket]] = casService.getTicket(tgtId, classOf[BaseTicket])
+        val someTicketFuture:Future[Option[TicketGrantingTicketImpl]] = casService.getTicket(tgtId, classOf[TicketGrantingTicketImpl])
         someTicketFuture.flatMap{ someTicket =>
           someTicket match{
             case Some(ticket) if(!ticket.isExpired) => hasServiceCheck(request)
