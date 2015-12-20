@@ -12,7 +12,7 @@ import net.spy.memcached.auth.PlainCallbackHandler
 import net.spy.memcached.compat.log.AbstractLogger
 import net.spy.memcached.compat.log.Level
 import net.spy.memcached.transcoders.Transcoder
-import play.api.{Application, Logger}
+import play.api.{Play, Application, Logger}
 
 import scala.collection.JavaConverters._
 import scala.concurrent.{ Future, Promise }
@@ -60,12 +60,13 @@ class CacheServiceImpl extends CacheService {
   lazy val namespace: String = implicitly[Application].configuration.getString("memcached.namespace").getOrElse("")
 
   lazy val client = {
+
     val app: Application = implicitly[Application]
     System.setProperty("net.spy.log.LoggerImpl", "services.sapi.Slf4JLogger")
 
     val username = Option(System.getenv("MEMCACHIER_USERNAME"))
     val password = Option(System.getenv("MEMCACHIER_PASSWORD"))
-    val endpointOption = Option(System.getenv("MEMCACHIER_SERVERS"))
+    val endpointOption = Option("localhost:11211")
 
     app.configuration.getString("elasticache.config.endpoint").map { endpoint =>
       new MemcachedClient(AddrUtil.getAddresses(endpoint))

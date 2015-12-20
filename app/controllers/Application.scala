@@ -142,7 +142,7 @@ class Application @Inject()(val casService: CentralAuthenicationService, val ser
           val ticketGrantingTicket: String = WebUtils.getTicketGrantingTicketId(request)
 
           try {
-            val credentialFuture: Future[Option[Credentials]] = WebUtils.getCredential(request, cacheService)
+            val credentialFuture: Future[Option[Credentials]] = Future.successful(Some(UsernamePasswordCredential(UUID.randomUUID().toString, credentials.username, credentials.password)))
             val foo = serviceFuture.flatMap { serviceO =>
               credentialFuture.flatMap { credentialO =>
                 credentialO match {
@@ -158,6 +158,12 @@ class Application @Inject()(val casService: CentralAuthenicationService, val ser
                             Future.successful(Some(WebUtils.putServiceTicketInRequestScope(request, serviceTicketId, futureResult).map(_.withCookies(Cookie("serviceId",serviceTicketId.getId)))))
                           } else {
                             Future.successful(Some(WebUtils.putServiceTicketInRequestScope(request, serviceTicketId, Future.successful(Redirect(service.getOriginalUrl,attributes))).map(_.withCookies(Cookie("serviceId",serviceTicketId.getId)))))
+                          }
+                        }
+                      case _ =>  val tgtTicketIdFuture: Future[TicketGrantingTicket] = casService.createTicketGrantingTicket(List(credential))
+                        tgtTicketIdFuture.flatMap { case tgtTicketId:TicketGrantingTicketImpl =>
+                          WebUtils.putTicketGrantingTicket(request, tgtTicketId).flatMap{ _ =>
+                            Future.successful(Some(viewGenericLoginSuccess(request)))
                           }
                         }
                     }
@@ -348,7 +354,8 @@ class Application @Inject()(val casService: CentralAuthenicationService, val ser
 
 object WebUtils {
   def checkLoginTicketIfExists(request: Request[AnyContent], lt:String):Boolean = {
-    request.cookies.get("tgt").map(_.value) == lt
+    val cookieTGT = request.cookies.get("tgt").map(_.value).getOrElse("")
+    cookieTGT == lt
   }
   def isRequestAskingForServiceTicket(request: Request[AnyContent], service: String, ticketGrantingTicketId: String):Boolean = {
     (ticketGrantingTicketId != null && service != null)
@@ -423,5 +430,8 @@ object WebUtils {
   }
   def putRegisteredService(context: Request[AnyContent], registeredService: RegisteredService)(implicit cacheService: CacheService) =
     CacheOps.caching(context.getQueryString("sessionId").getOrElse(""))(registeredService)
+  def putTicketGrantingTicket(context: Request[AnyContent], ticketGrantingTicket: TicketGrantingTicketImpl)(implicit cacheService: CacheService) = {
+    CacheOps.caching(context.getQueryString("sessionId").getOrElse(""))(ticketGrantingTicket)
+  }
 }
 

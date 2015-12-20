@@ -5,7 +5,7 @@ import java.util.UUID
 
 import com.mongodb.util.{JSONParseException, JSON}
 import com.mongodb.{MongoClientOptions, MongoClientURI, MongoClient, DBObject}
-import org.springframework.data.authentication.UserCredentials
+import controllers.cas.Credentials
 import org.springframework.data.mapping.model.MappingException
 import org.springframework.data.mongodb.MongoDbFactory
 import org.springframework.data.mongodb.core.{SimpleMongoDbFactory, MongoOperations, MongoTemplate}
@@ -38,48 +38,21 @@ import com.mongodb._
 /**
  * Created by tash on 9/19/14.
  */
-trait Value
 
-case class ComplexObject(attribute: Map[String, Value]) extends Value
-case class SimpleObject(value: String) extends Value
-case class ListObject(values: Seq[Value]) extends Value
+case class UserCrendential(id: String, userId: String, lookupValues: Map[String,String])
 
-case class User(id: String, attributes: Map[String, Value])
+trait UserCrendentialDaoReactive {
+  def createUserCrendential(userCrendential: UserCrendential): Future[LastError]
 
-object ValueHelper{
-  def flattenValue(value: Value): List[String] = {
-    flatten(value)
-  }
-
-  def flatten(c: ListObject): List[String] = c.values.map(flatten(_)).flatten.toList
-
-  def flatten(c: ComplexObject): List[String] = c.attribute.values.map(v => flatten(v)).flatten.toList
-
-  def flatten(value: Value):List[String] = {
-    value match {
-      case c:ComplexObject => flatten(c)
-      case c:ListObject => flatten(c)
-      case c:SimpleObject => List(c.value)
-      case _ => List("")
-    }
-  }
-}
-
-trait UserDaoReactive {
-  def getUserById(principalId: String): Future[Option[User]]
-
-  def createUser(user: User): Future[LastError]
-
-  def getUserByQ(name: String): Future[Option[User]]
+  def getUserCrendentialByQ(name: String): Future[Option[UserCrendential]]
 
 
 }
-
-class UserDaoReactiveImpl extends UserDaoReactive{
+class UserCrendentialDaoReactiveImpl extends UserCrendentialDaoReactive{
   val conf = Play.configuration
   val DB_NAME = "db"
-  val userCollectionNameString: String = "users"
-  object userDao {
+  val UserCrendentialCollectionNameString: String = "UserCrendentials"
+  object UserCrendentialDao {
     protected var mongoOperations: MongoOperations = null
     protected var converter: MappingMongoConverter = null
     val otherUri = System.getProperties().getProperty("mongodb.uri")
@@ -122,9 +95,9 @@ class UserDaoReactiveImpl extends UserDaoReactive{
   def connection = ReactiveMongoPlayPlugin.connection
   /** Returns the default database (as specified in `application.conf`). */
   def db = ReactiveMongoPlayPlugin.db
-  def collection = db.collection[JSONCollection](userCollectionNameString)
+  def collection = db.collection[JSONCollection](UserCrendentialCollectionNameString)
 
-  def getSurveyByQueryString(queryString: Map[String, Seq[String]]): Future[List[User]] = {
+  def getSurveyByQueryString(queryString: Map[String, Seq[String]]): Future[List[UserCrendential]] = {
     val query: Query = new Query
     queryString.map {case (k,v) =>
       val criteria: Criteria = Criteria.where(k).in(v)
@@ -132,17 +105,15 @@ class UserDaoReactiveImpl extends UserDaoReactive{
     }
     collection.find(Json.parse(serializeToJsonSafely(query.getQueryObject))).cursor[JsValue].collect[List]().map {
       result =>
-        result.map(Survey => userDao.fromInstanceDBObject(MongoJson.fromJson(Survey), classOf[User]))
+        result.map(Survey => UserCrendentialDao.fromInstanceDBObject(MongoJson.fromJson(Survey), classOf[UserCrendential]))
     } recover {
       case e: Exception =>
         Logger.error(s"Error fetching Survey with name $query from mongo", e)
-        List.empty[User]
+        List.empty[UserCrendential]
     }
   }
 
-  override def getUserById(principalId: String): Future[Option[User]] = ???
+  override def createUserCrendential(userCrendential: UserCrendential): Future[LastError] = ???
 
-  override def createUser(user: User): Future[LastError] = ???
-
-  override def getUserByQ(name: String): Future[Option[User]] = ???
+  override def getUserCrendentialByQ(name: String): Future[Option[UserCrendential]] = ???
 }

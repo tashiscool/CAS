@@ -7,10 +7,9 @@ trait CredentialMetaData{
   def getId: String
 }
 
-@SerialVersionUID(4929579849241505377L)
 case class BasicCredentialMetaData(credential: Credentials) extends CredentialMetaData {
-  /** Serialization version marker. */
-  private val serialVersionUID: Long = 4929579849241505377L
-
   override def getId: String = credential.id
+}
+class PrincipalBearingCredential extends CredentialMetaData {
+  override def getId: String = ""
 }
