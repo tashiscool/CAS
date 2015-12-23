@@ -10,7 +10,7 @@ import play.api.libs.concurrent.Execution.Implicits._
 /**
  * Created by tash on 11/23/15.
  */
-trait AuthenticationManager{
+trait AuthenticationManager  extends Serializable{
   /** Authentication method attribute name. **/
   val AUTHENTICATION_METHOD_ATTRIBUTE: String = "authenticationMethod"
 

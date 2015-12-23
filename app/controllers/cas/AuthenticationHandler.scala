@@ -13,7 +13,7 @@ import play.api.libs.concurrent.Execution.Implicits._
 /**
  * Created by tash on 11/24/15.
  */
-trait AuthenticationHandler {
+trait AuthenticationHandler extends Serializable {
   /**
    * Authenticates the given credential. There are three possible outcomes of this process, and implementers
    * MUST adhere to the following contract:
@@ -283,15 +283,15 @@ case class QueryDatabaseAuthenticationHandler(principalFactory: PrincipalFactory
   }
 }
 
-trait PasswordEncoder{
+trait PasswordEncoder  extends Serializable{
   def encode (password: String): String
 }
 
-trait PrincipalNameTransformer {
+trait PrincipalNameTransformer  extends Serializable {
   def transform(getUsername: String): String = getUsername
 }
 
-trait PasswordPolicyConfiguration
+trait PasswordPolicyConfiguration extends Serializable
 
 class PlainTextPasswordEncoder extends PasswordEncoder {
   def encode (password: String): String = {

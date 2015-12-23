@@ -13,7 +13,7 @@ import play.api.libs.concurrent.Execution.Implicits._
 /**
  * Created by tash on 11/19/15.
  */
-trait CentralAuthenicationService {
+trait CentralAuthenicationService  extends Serializable {
   /**
    * Create a {@link org.jasig.cas.ticket.TicketGrantingTicket} by authenticating credentials.
    * The details of the security policy around credential authentication and the definition
@@ -420,7 +420,7 @@ class UnrecognizableServiceForServiceTicketValidationException(getService: Servi
  * @author Misagh Moayyed
  * @since 4.1.0
  */
-trait PrincipalFactory {
+trait PrincipalFactory  extends Serializable {
   /**
    * Create principal.
    *

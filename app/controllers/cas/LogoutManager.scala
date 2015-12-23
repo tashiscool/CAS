@@ -5,7 +5,7 @@ import java.net.URL
 /**
  * Created by tash on 11/23/15.
  */
-trait LogoutManager {
+trait LogoutManager  extends Serializable {
 /**
  * Perform a back channel logout for a given ticket granting ticket and returns all the logout requests.
  *

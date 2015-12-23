@@ -9,7 +9,7 @@ import play.api.libs.concurrent.Execution.Implicits._
 /**
  * Created by tash on 11/24/15.
  */
-trait PrincipalResolver {
+trait PrincipalResolver extends Serializable{
 /**
  * Resolves a principal from the given credential using an arbitrary strategy.
  *

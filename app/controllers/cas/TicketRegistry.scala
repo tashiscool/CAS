@@ -12,7 +12,7 @@ import controllers.cas.BaseTicket
 /**
  * Created by tash on 11/23/15.
  */
-trait TicketRegistry {
+trait TicketRegistry extends Serializable{
   /**
    * Add a ticket to the registry. Ticket storage is based on the ticket id.
    *

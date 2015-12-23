@@ -25,12 +25,16 @@ import utils.scalautils.MongoJson
 import scala.concurrent.ExecutionContext.Implicits.global
 import play.api._
 import com.mongodb._
-
+import ImplictJSONs._
 
 
 /**
  * Created by tash on 9/19/14.
  */
+object ImplictJSONs{
+  implicit val personReads = Json.reads[UserCrendential]
+  implicit val personWrites = Json.writes[UserCrendential]
+}
 
 case class UserCrendential(_id: String, userId: String, lookupValues: Map[String,String])
 
@@ -43,8 +47,6 @@ trait UserCrendentialDaoReactive extends Serializable {
 
 }
 class UserCrendentialDaoReactiveImpl extends UserCrendentialDaoReactive{
-  implicit val personReads = Json.reads[UserCrendential]
-  implicit val personWrites = Json.writes[UserCrendential]
   val conf = Play.configuration
   val DB_NAME = "db"
   val UserCrendentialCollectionNameString: String = "UserCrendentials"

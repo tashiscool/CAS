@@ -5,7 +5,7 @@ import org.apache.commons.lang3.builder.HashCodeBuilder
 /**
  * Created by tash on 11/19/15.
  */
-trait Assertion {
+trait Assertion extends Serializable{
   /**
    * Gets the authentication event that is basis of this assertion.
    *

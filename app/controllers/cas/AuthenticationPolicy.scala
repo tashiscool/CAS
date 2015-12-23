@@ -3,7 +3,7 @@ package controllers.cas
 /**
  * Created by tash on 11/24/15.
  */
-trait AuthenticationPolicy {
+trait AuthenticationPolicy  extends Serializable {
   /**
    * Determines whether an authentication event isSatisfiedBy arbitrary security policy.
    *
@@ -21,7 +21,7 @@ trait AuthenticationPolicy {
  * @author Marvin S. Addison
  * @since 4.0.0
  */
-trait ContextualAuthenticationPolicyFactory[T] {
+trait ContextualAuthenticationPolicyFactory[T]  extends Serializable {
   /**
    * Creates a contextual (presumably stateful) authentication policy based on provided context data.
    *

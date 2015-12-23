@@ -5,7 +5,7 @@ import utils.scalautils.NullSafe
 /**
  * Created by tash on 11/24/15.
  */
-trait AuthenticationMetaDataPopulator{
+trait AuthenticationMetaDataPopulator  extends Serializable{
   def builder:AuthenticationBuilder
 
   /**

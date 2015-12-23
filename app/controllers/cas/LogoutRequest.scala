@@ -5,7 +5,7 @@ import java.net.URL
 /**
  * Created by tash on 11/19/15.
  */
-trait LogoutRequest {
+trait LogoutRequest extends Serializable{
   /**
    * Gets status of the request.
    *

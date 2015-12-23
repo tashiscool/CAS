@@ -11,7 +11,7 @@ import org.slf4j.{Logger, LoggerFactory}
 /**
  * Created by tash on 12/14/15.
  */
-trait UniqueTicketIdGenerator {
+trait UniqueTicketIdGenerator  extends Serializable{
   /**
    * Return a new unique ticket id beginning with the prefix.
    *
@@ -26,7 +26,7 @@ trait UniqueTicketIdGenerator {
  *
 
  */
-trait RandomStringGenerator {
+trait RandomStringGenerator  extends Serializable {
   /**
    * @return the minimum length as an int guaranteed by this generator.
    */
@@ -55,7 +55,7 @@ trait RandomStringGenerator {
  *
 
  */
-trait NumericGenerator {
+trait NumericGenerator  extends Serializable {
   /**
    * Method to retrieve the next number as a String.
    *

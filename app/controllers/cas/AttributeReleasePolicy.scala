@@ -5,7 +5,7 @@ import org.apache.commons.lang3.builder.{ToStringBuilder, EqualsBuilder, HashCod
 /**
  * Created by tash on 11/23/15.
  */
-trait AttributeReleasePolicy{
+trait AttributeReleasePolicy  extends Serializable{
   /**
    * Is authorized to release credential password?
    *
