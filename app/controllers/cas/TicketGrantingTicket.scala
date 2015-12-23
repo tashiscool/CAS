@@ -221,7 +221,7 @@ case class TicketGrantingTicketImpl(override val expirationPolicy: ExpirationPol
    *          not a proxy-granting ticket.
    * @since 4.1
    */
-  override def getProxiedBy: Service = proxiedBy.get
+  override def getProxiedBy: Service = proxiedBy.getOrElse(null)
 
   def updateState: TicketGrantingTicketImpl = {
     this.copy(previousLastTimeUsed = lastTimeUsed, lastTimeUsed = System.currentTimeMillis, countOfUses = countOfUses+1)

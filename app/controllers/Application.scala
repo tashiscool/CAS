@@ -152,21 +152,17 @@ class Application @Inject()(val casService: CentralAuthenicationService, val ser
                     someTicketFuture.flatMap{ ticketGT =>
                       serviceO match {
                         case Some(service) if(ticketGT.getOrElse(null) != null) =>
-                          val serviceTicketIdFuture: Future[ServiceTicket] = casService.grantServiceTicket(ticketGrantingTicket, service, List(credential))
-                          serviceTicketIdFuture.flatMap { serviceTicketId =>
-                            val attributes = service.getResponse.attributes.map{case(x,y) => (x,List(y).toSeq) }.+("ticket"->List(serviceTicketId.getId).toSeq)
-                            if(service.getResponse.responseType == POST){
-                              val newURL = s"${service.getOriginalUrl}?ticket=${serviceTicketId.getId}"
-                              val futureResult:Future[Result] = Future.successful(Ok(autoredirector(newURL, attributes)))
-                              Future.successful(Some(WebUtils.putServiceTicketInRequestScope(request, serviceTicketId, futureResult).map(_.withCookies(Cookie("serviceId",serviceTicketId.getId)))))
-                            } else {
-                              Future.successful(Some(WebUtils.putServiceTicketInRequestScope(request, serviceTicketId, Future.successful(Redirect(service.getOriginalUrl,attributes))).map(_.withCookies(Cookie("serviceId",serviceTicketId.getId)))))
+                          grantServiceTicket(ticketGrantingTicket, credential, service, request)
+                        case Some(service) =>  val tgtTicketIdFuture: Future[TicketGrantingTicket] = casService.createTicketGrantingTicket(List(credential))
+                          tgtTicketIdFuture.flatMap { case tgtTicketId:TicketGrantingTicket =>
+                            WebUtils.putTicketGrantingTicket(request, tgtTicketId).flatMap{ _ =>
+                              grantServiceTicket(tgtTicketId.getId, credential, service, request)
                             }
                           }
                         case _ =>  val tgtTicketIdFuture: Future[TicketGrantingTicket] = casService.createTicketGrantingTicket(List(credential))
                           tgtTicketIdFuture.flatMap { case tgtTicketId:TicketGrantingTicket =>
                             WebUtils.putTicketGrantingTicket(request, tgtTicketId).flatMap{ _ =>
-                              Future.successful(Some(viewGenericLoginSuccess(request)))
+                              Future.successful(Some(viewGenericLoginSuccess(request).map(_.withCookies(Cookie("tgt", tgtTicketId.getId)))))
                             }
                           }
                       }
@@ -229,6 +225,20 @@ class Application @Inject()(val casService: CentralAuthenicationService, val ser
           }
         }
       })
+  }
+
+  def grantServiceTicket(ticketGrantingTicket: String, credential: Credentials, service: Service, request: Request[AnyContent]): Future[Some[Future[SimpleResult]]] = {
+    val serviceTicketIdFuture: Future[ServiceTicket] = casService.grantServiceTicket(ticketGrantingTicket, service, List(credential))
+    serviceTicketIdFuture.flatMap { serviceTicketId =>
+      val attributes = service.getResponse.attributes.map { case (x, y) => (x, List(y).toSeq) }.+("ticket" -> List(serviceTicketId.getId).toSeq)
+      if (service.getResponse.responseType == POST) {
+        val newURL = s"${service.getOriginalUrl}?ticket=${serviceTicketId.getId}"
+        val futureResult: Future[SimpleResult] = Future.successful(Ok(autoredirector(newURL, attributes)))
+        Future.successful(Some(WebUtils.putServiceTicketInRequestScope(request, serviceTicketId, futureResult).map(_.withCookies(Cookie("serviceId", serviceTicketId.getId)))))
+      } else {
+        Future.successful(Some(WebUtils.putServiceTicketInRequestScope(request, serviceTicketId, Future.successful(Redirect(service.getOriginalUrl, attributes))).map(_.withCookies(Cookie("serviceId", serviceTicketId.getId)))))
+      }
+    }
   }
 
   def generateServiceTicket(generateLoginTicket: (Request[AnyContent]) => Future[Result]):(Request[AnyContent]) => Future[Result] = { context:Request[AnyContent] =>
