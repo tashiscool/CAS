@@ -32,7 +32,7 @@ import utils.scalautils.MongoJson
 import scala.concurrent.ExecutionContext.Implicits.global
 import play.api._
 import com.mongodb._
-
+import ValueHelper._
 
 
 /**
@@ -62,6 +62,38 @@ case class ListObject(values: Seq[Value]) extends Value
 case class User(id: String, attributes: Map[String, Value])
 
 object ValueHelper{
+
+  implicit val userReads2 = new Reads[Map[String, Value]] with Serializable {
+    override def reads(json: JsValue): JsResult[Map[String, Value]] = {
+      JsSuccess(json.asInstanceOf[JsObject].value.map{case(k,v) => (k,ValueHelper.parse(v))}).asInstanceOf[JsResult[Map[String, Value]]]
+    }
+  }
+  implicit val userWrites2 = new Writes[Map[String, Value]] with Serializable {
+    override def writes(o: Map[String, Value]): JsValue = {
+      val foo = o.map{ case (k,v) => s""" "${k}":${v.toString},"""  }.toList
+      val str = s"{ ${foo.mkString(" ") } }"
+      val ind = str.lastIndexOf(",")
+      val forParse = scala.collection.mutable.StringBuilder.newBuilder.append(str).replace(ind, ind + 1,"").toString()
+      Json.parse(forParse)
+    }
+  }
+  implicit val userReads3 = new Reads[Value] with Serializable  {
+    override def reads(json: JsValue): JsResult[Value] = JsSuccess(ValueHelper.parse(json))
+  }
+  implicit val userWrites3 = new Writes[Value] with Serializable {
+    override def writes(o: Value): JsValue = {
+      Json.parse(o.toString)
+    }
+  }
+  implicit val userReads4 = Json.writes[ListObject]
+  implicit val userWrites4 = Json.reads[ListObject]
+  implicit val userReads5 = Json.writes[ComplexObject]
+  implicit val userWrites5 = Json.reads[ComplexObject]
+  implicit val userReads6 = Json.writes[SimpleObject]
+  implicit val userWrites6 = Json.reads[SimpleObject]
+  implicit val userReads = Json.writes[User]
+  implicit val userWrites = Json.reads[User]
+
   def flattenValue(value: Value): List[String] = {
     flatten(value)
   }
@@ -152,36 +184,6 @@ class UserDaoReactiveImpl extends UserDaoReactive{
   val conf = Play.configuration
   val DB_NAME = "db"
   val userCollectionNameString: String = "UserAttributes"
-  implicit val userReads2 = new Reads[Map[String, Value]] {
-    override def reads(json: JsValue): JsResult[Map[String, Value]] = {
-      JsSuccess(json.asInstanceOf[JsObject].value.map{case(k,v) => (k,ValueHelper.parse(v))}).asInstanceOf[JsResult[Map[String, Value]]]
-    }
-  }
-  implicit val userWrites2 = new Writes[Map[String, Value]] {
-    override def writes(o: Map[String, Value]): JsValue = {
-      val foo = o.map{ case (k,v) => s""" "${k}":${v.toString},"""  }.toList
-      val str = s"{ ${foo.mkString(" ") } }"
-      val ind = str.lastIndexOf(",")
-      val forParse = scala.collection.mutable.StringBuilder.newBuilder.append(str).replace(ind, ind + 1,"").toString()
-      Json.parse(forParse)
-    }
-  }
-  implicit val userReads3 = new Reads[Value] {
-    override def reads(json: JsValue): JsResult[Value] = JsSuccess(ValueHelper.parse(json))
-  }
-  implicit val userWrites3 = new Writes[Value] {
-    override def writes(o: Value): JsValue = {
-      Json.parse(o.toString)
-    }
-  }
-  implicit val userReads4 = Json.writes[ListObject]
-  implicit val userWrites4 = Json.reads[ListObject]
-  implicit val userReads5 = Json.writes[ComplexObject]
-  implicit val userWrites5 = Json.reads[ComplexObject]
-  implicit val userReads6 = Json.writes[SimpleObject]
-  implicit val userWrites6 = Json.reads[SimpleObject]
-  implicit val userReads = Json.writes[User]
-  implicit val userWrites = Json.reads[User]
 
 
   object userDao {
