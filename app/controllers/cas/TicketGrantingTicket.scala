@@ -171,7 +171,7 @@ case class TicketGrantingTicketImpl(override val expirationPolicy: ExpirationPol
    *
    * @return Non-null list of authentication associated with this ticket in leaf-first order.
    */
-  override def getChainedAuthentications: List[Authentication] = getGrantingTicket.get.getChainedAuthentications
+  override def getChainedAuthentications: List[Authentication] = getGrantingTicket.map(_.getChainedAuthentications).getOrElse(List(getAuthentication))
 
   /**
    * Mark a ticket as expired.

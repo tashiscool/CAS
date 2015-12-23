@@ -25,7 +25,7 @@ trait AttributeReleasePolicy  extends Serializable{
    *
    * @param filter the new attribute filter
    */
-  def setAttributeFilter(filter: Map[String, AnyRef] => Map[String, AnyRef]):AttributeReleasePolicy
+  def setAttributeFilter(filter: Map[String, AnyRef]):AttributeReleasePolicy
 
   /**
    * Gets the attributes, having applied the filter.
@@ -35,8 +35,38 @@ trait AttributeReleasePolicy  extends Serializable{
    */
   def getAttributes(p: Principal): Map[String, AnyRef]
 }
+class ReturnAllAttributeReleasePolicy extends AttributeReleasePolicy {
+  /**
+   * Is authorized to release credential password?
+   *
+   * @return the boolean
+   */
+  override def isAuthorizedToReleaseCredentialPassword: Boolean = true
 
-case class ReturnAllowedAttributeReleasePolicy(allowedAttributes: List[String], filter: (Map[String, AnyRef]) => Map[String, AnyRef]) extends AttributeReleasePolicy  with Serializable{
+  /**
+   * Gets the attributes, having applied the filter.
+   *
+   * @param p the principal that contains the resolved attributes
+   * @return the attributes
+   */
+  override def getAttributes(p: Principal): Map[String, AnyRef] = p.getAttributes
+
+  /**
+   * Is authorized to release proxy granting ticket?
+   *
+   * @return the boolean
+   */
+  override def isAuthorizedToReleaseProxyGrantingTicket: Boolean = true
+
+  /**
+   * Sets the attribute filter.
+   *
+   * @param filter the new attribute filter
+   */
+  override def setAttributeFilter(filter: Map[String, AnyRef]): AttributeReleasePolicy = this
+}
+
+case class ReturnAllowedAttributeReleasePolicy(allowedAttributes: List[String], filter: Map[String, AnyRef]) extends AttributeReleasePolicy  with Serializable{
 
   protected def getAttributesInternal(resolvedAttributes: Map[String, AnyRef]): Map[String, AnyRef] = {
     resolvedAttributes.filter{case(x,y) => allowedAttributes.contains(x)}
@@ -77,7 +107,14 @@ case class ReturnAllowedAttributeReleasePolicy(allowedAttributes: List[String], 
    * @param p the principal that contains the resolved attributes
    * @return the attributes
    */
-  override def getAttributes(p: Principal): Map[String, AnyRef] = ???
+  override def getAttributes(p: Principal): Map[String, AnyRef] = {
+    val principalAttributes: Map[String, AnyRef] = p.getAttributes //TODO: this tightly coulpes the principal and attribute retrival, may want to fix -tk
+    val attributesToRelease: Map[String, AnyRef] = getAttributesInternal(principalAttributes)
+
+    attributesToRelease.filter{
+      case(k,v) => filter.keys.exists( _ == k)
+    }
+  }
 
   /**
    * Is authorized to release proxy granting ticket?
@@ -91,6 +128,6 @@ case class ReturnAllowedAttributeReleasePolicy(allowedAttributes: List[String], 
    *
    * @param filter the new attribute filter
    */
-  override def setAttributeFilter(filter: (Map[String, AnyRef]) => Map[String, AnyRef]): ReturnAllowedAttributeReleasePolicy = this.copy(filter = filter )
+  override def setAttributeFilter(filter: Map[String, AnyRef]): ReturnAllowedAttributeReleasePolicy = this.copy(filter = filter )
 }
 

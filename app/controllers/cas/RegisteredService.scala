@@ -160,7 +160,7 @@ case class RegisteredServiceImpl(serviceId:String, name:String, theme:String, id
                                  val logoutType:LogoutType = BACK_CHANNEL,val requiredHandlers:Set[String] = Set[String](),val logo:URL, val logoutUrl:URL,
                                  val proxyPolicy:RegisteredServiceProxyPolicy = new RefuseRegisteredServiceProxyPolicy(),
                                  val usernameAttributeProvider:RegisteredServiceUsernameAttributeProvider = new DefaultRegisteredServiceUsernameProvider(),
-                                 val attributeReleasePolicy:AttributeReleasePolicy = new ReturnAllowedAttributeReleasePolicy(List.empty[String], Map()),
+                                 val attributeReleasePolicy:AttributeReleasePolicy = new ReturnAllAttributeReleasePolicy,
                                  val accessStrategy:RegisteredServiceAccessStrategy = new DefaultRegisteredServiceAccessStrategy(Map()),
                                  val publicKey:RegisteredServicePublicKey = new DefaultRegisteredServicePublicKey ) extends RegisteredService {
 
