@@ -138,7 +138,7 @@ object ValueHelper{
 
 
 
-trait UserDaoReactive {
+trait UserDaoReactive extends Serializable{
   def getUserById(principalId: String): Future[Option[User]]
 
   def createUser(user: User): Future[LastError]

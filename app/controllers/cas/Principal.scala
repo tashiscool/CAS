@@ -5,7 +5,7 @@ import org.apache.commons.lang3.builder.{EqualsBuilder, HashCodeBuilder}
 /**
  * Created by tash on 11/19/15.
  */
-trait Principal{
+trait Principal extends Serializable{
   /**
    * @return the unique id for the Principal
    */
@@ -43,7 +43,6 @@ object NullPrincipal{
   }
 }
 
-@SerialVersionUID(-1255260750151385796L)
 case class SimplePrincipal(id:String, attributes: Map[String, AnyRef]) extends Principal {
   /**
    * @return An immutable map of principal attributes

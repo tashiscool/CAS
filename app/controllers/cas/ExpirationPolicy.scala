@@ -5,7 +5,7 @@ import java.util.concurrent.TimeUnit
 /**
  * Created by tash on 11/19/15.
  */
-trait ExpirationPolicy{
+trait ExpirationPolicy extends Serializable{
   def isExpired (ticketState: TicketState):Boolean
 }
 

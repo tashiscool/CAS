@@ -35,7 +35,7 @@ import com.mongodb._
 case class UserCrendential(_id: String, userId: String, lookupValues: Map[String,String])
 
 
-trait UserCrendentialDaoReactive {
+trait UserCrendentialDaoReactive extends Serializable {
   def createUserCrendential(userCrendential: UserCrendential): Future[LastError]
 
   def getUserCrendentialByQ(name: String): Future[Option[UserCrendential]]

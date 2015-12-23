@@ -68,7 +68,7 @@ class MemcacheTicketRegistry @Inject() (val cacheService: CacheService) extends 
    */
   override def addTicket(ticket: Ticket): Future[Ticket] ={
     ticket match{
-      case tgt:TicketGrantingTicket=> val f = CacheOps.caching("")(tgt); f.onComplete(_ => logger.debug(s"ticketgt added to memcache $ticket")); f
+      case tgt:TicketGrantingTicket=> val f = CacheOps.caching("")(tgt); f.onComplete(x => logger.debug(s"ticketgt added to memcache $ticket $x")); f
       case st:ServiceTicket=> val f = CacheOps.caching("")(st); f.onComplete(_ => logger.debug(s"sticket added to memcache $ticket")); f
       case st:BaseTicket=> val f = CacheOps.caching("")(st); f.onComplete(_ => logger.debug(s"bticket added to memcache $ticket")); f
       case _ => val f = CacheOps.caching("")(ticket); f.onComplete(_ => logger.debug(s"ticket added to memcache $ticket")); f

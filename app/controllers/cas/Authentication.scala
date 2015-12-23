@@ -7,7 +7,7 @@ import org.joda.time.DateTime
 /**
  * Created by tash on 11/19/15.
  */
-trait Authentication{
+trait Authentication extends Serializable{
   /**
    * Method to obtain the Principal.
    *
