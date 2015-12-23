@@ -39,7 +39,7 @@ class Application @Inject()(val casService: CentralAuthenicationService, val ser
       if(StringUtils.isBlank(tgtId)){
         gatewayRequestCheck(request)
       }else {
-        val someTicketFuture:Future[Option[TicketGrantingTicketImpl]] = casService.getTicket(tgtId, classOf[TicketGrantingTicketImpl])
+        val someTicketFuture:Future[Option[TicketGrantingTicket]] = casService.getTicket(tgtId, classOf[TicketGrantingTicket])
         someTicketFuture.flatMap{ someTicket =>
           someTicket match{
             case Some(ticket) if(!ticket.isExpired) => hasServiceCheck(request)
@@ -143,30 +143,35 @@ class Application @Inject()(val casService: CentralAuthenicationService, val ser
 
           try {
             val credentialFuture: Future[Option[Credentials]] = Future.successful(Some(UsernamePasswordCredential(UUID.randomUUID().toString, credentials.username, credentials.password)))
+            val someTicketFuture:Future[Option[TicketGrantingTicket]] = casService.getTicket(ticketGrantingTicket, classOf[TicketGrantingTicket])
+
             val foo = serviceFuture.flatMap { serviceO =>
               credentialFuture.flatMap { credentialO =>
                 credentialO match {
                   case Some(credential) =>
-                    serviceO match {
-                      case Some(service) =>
-                        val serviceTicketIdFuture: Future[ServiceTicket] = casService.grantServiceTicket(ticketGrantingTicket, service, List(credential))
-                        serviceTicketIdFuture.flatMap { serviceTicketId =>
-                          val attributes = service.getResponse.attributes.map{case(x,y) => (x,List(y).toSeq) }.+("ticket"->List(serviceTicketId.getId).toSeq)
-                          if(service.getResponse.responseType == POST){
-                            val newURL = s"${service.getOriginalUrl}?ticket=${serviceTicketId.getId}"
-                            val futureResult:Future[Result] = Future.successful(Ok(autoredirector(newURL, attributes)))
-                            Future.successful(Some(WebUtils.putServiceTicketInRequestScope(request, serviceTicketId, futureResult).map(_.withCookies(Cookie("serviceId",serviceTicketId.getId)))))
-                          } else {
-                            Future.successful(Some(WebUtils.putServiceTicketInRequestScope(request, serviceTicketId, Future.successful(Redirect(service.getOriginalUrl,attributes))).map(_.withCookies(Cookie("serviceId",serviceTicketId.getId)))))
+                    someTicketFuture.flatMap{ ticketGT =>
+                      serviceO match {
+                        case Some(service) if(ticketGT.getOrElse(null) != null) =>
+                          val serviceTicketIdFuture: Future[ServiceTicket] = casService.grantServiceTicket(ticketGrantingTicket, service, List(credential))
+                          serviceTicketIdFuture.flatMap { serviceTicketId =>
+                            val attributes = service.getResponse.attributes.map{case(x,y) => (x,List(y).toSeq) }.+("ticket"->List(serviceTicketId.getId).toSeq)
+                            if(service.getResponse.responseType == POST){
+                              val newURL = s"${service.getOriginalUrl}?ticket=${serviceTicketId.getId}"
+                              val futureResult:Future[Result] = Future.successful(Ok(autoredirector(newURL, attributes)))
+                              Future.successful(Some(WebUtils.putServiceTicketInRequestScope(request, serviceTicketId, futureResult).map(_.withCookies(Cookie("serviceId",serviceTicketId.getId)))))
+                            } else {
+                              Future.successful(Some(WebUtils.putServiceTicketInRequestScope(request, serviceTicketId, Future.successful(Redirect(service.getOriginalUrl,attributes))).map(_.withCookies(Cookie("serviceId",serviceTicketId.getId)))))
+                            }
                           }
-                        }
-                      case _ =>  val tgtTicketIdFuture: Future[TicketGrantingTicket] = casService.createTicketGrantingTicket(List(credential))
-                        tgtTicketIdFuture.flatMap { case tgtTicketId:TicketGrantingTicketImpl =>
-                          WebUtils.putTicketGrantingTicket(request, tgtTicketId).flatMap{ _ =>
-                            Future.successful(Some(viewGenericLoginSuccess(request)))
+                        case _ =>  val tgtTicketIdFuture: Future[TicketGrantingTicket] = casService.createTicketGrantingTicket(List(credential))
+                          tgtTicketIdFuture.flatMap { case tgtTicketId:TicketGrantingTicket =>
+                            WebUtils.putTicketGrantingTicket(request, tgtTicketId).flatMap{ _ =>
+                              Future.successful(Some(viewGenericLoginSuccess(request)))
+                            }
                           }
-                        }
+                      }
                     }
+
                 }
               }
             }
@@ -175,6 +180,10 @@ class Application @Inject()(val casService: CentralAuthenicationService, val ser
                 case Some(result) => result
                 case _ => generateLoginTicket(request)
               }
+            } recoverWith{
+              case e:Exception=>
+                logger.error("uable to continue due to", e)
+                generateLoginTicket(request)
             }
           }
         }else{
@@ -212,6 +221,10 @@ class Application @Inject()(val casService: CentralAuthenicationService, val ser
                 case Some(result) => result
                 case _ => generateLoginTicket(request)
               }
+            } recoverWith{
+              case e:Exception=>
+                logger.error("uable to continue due to", e)
+                generateLoginTicket(request)
             }
           }
         }
@@ -362,7 +375,7 @@ object WebUtils {
   }
 
   def putServiceTicketInRequestScope(context: Request[AnyContent], serviceTicketId: ServiceTicket, eventualResult: Future[Result])(implicit cacheService: CacheService): Future[Result] = {
-    serviceTicketId match { case serviceTicketId:ServiceTicketImpl=>
+    serviceTicketId match { case serviceTicketId:ServiceTicket=>
       CacheOps.caching("")(serviceTicketId).flatMap(_ => eventualResult).map(_.withCookies(Cookie("serviceTicketId",serviceTicketId.id)))
     case _ => CacheOps.caching("")(serviceTicketId).flatMap(_ => eventualResult).map(_.withCookies(Cookie("serviceTicketId",serviceTicketId.id)))
     }
@@ -430,7 +443,7 @@ object WebUtils {
   }
   def putRegisteredService(context: Request[AnyContent], registeredService: RegisteredService)(implicit cacheService: CacheService) =
     CacheOps.caching(context.getQueryString("sessionId").getOrElse(""))(registeredService)
-  def putTicketGrantingTicket(context: Request[AnyContent], ticketGrantingTicket: TicketGrantingTicketImpl)(implicit cacheService: CacheService) = {
+  def putTicketGrantingTicket(context: Request[AnyContent], ticketGrantingTicket: TicketGrantingTicket)(implicit cacheService: CacheService) = {
     CacheOps.caching(context.getQueryString("sessionId").getOrElse(""))(ticketGrantingTicket)
   }
 }

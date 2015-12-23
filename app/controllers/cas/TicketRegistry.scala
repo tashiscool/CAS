@@ -68,8 +68,8 @@ class MemcacheTicketRegistry @Inject() (val cacheService: CacheService) extends 
    */
   override def addTicket(ticket: Ticket): Future[Ticket] ={
     ticket match{
-      case tgt:TicketGrantingTicketImpl=> val f = CacheOps.caching("")(tgt); f.onComplete(_ => logger.debug(s"ticketgt added to memcache $ticket")); f
-      case st:ServiceTicketImpl=> val f = CacheOps.caching("")(st); f.onComplete(_ => logger.debug(s"sticket added to memcache $ticket")); f
+      case tgt:TicketGrantingTicket=> val f = CacheOps.caching("")(tgt); f.onComplete(_ => logger.debug(s"ticketgt added to memcache $ticket")); f
+      case st:ServiceTicket=> val f = CacheOps.caching("")(st); f.onComplete(_ => logger.debug(s"sticket added to memcache $ticket")); f
       case st:BaseTicket=> val f = CacheOps.caching("")(st); f.onComplete(_ => logger.debug(s"bticket added to memcache $ticket")); f
       case _ => val f = CacheOps.caching("")(ticket); f.onComplete(_ => logger.debug(s"ticket added to memcache $ticket")); f
     }
@@ -105,9 +105,9 @@ class MemcacheTicketRegistry @Inject() (val cacheService: CacheService) extends 
 
 
     clazz match{
-      case _ if (clazz.getName == TicketGrantingTicketImpl.getClass.getName) => cacheService.get[T](Keys.ticketGrantingTicketGenerator.apply("", ticketGrantingticket) )
-      case _ if (clazz.getName == ServiceTicketImpl.getClass.getName)=> cacheService.get[T](Keys.serviceTicketGenerator.apply("", serviceTicket) )
-      case _ if (clazz.getName == "controllers.cas.BaseTicket")=> cacheService.get[T](Keys.baseTicketGenerator.apply("", serviceTicket) )
+      case _ if (clazz.getName.contains(TicketGrantingTicket.getClass.getName.replaceAll("\\$","")) ) => cacheService.get[T](Keys.ticketGrantingTicketGenerator.apply("", ticketGrantingticket) )
+      case _ if (clazz.getName.contains(ServiceTicket.getClass.getName.replaceAll("\\$","")))=> cacheService.get[T](Keys.serviceTickGenerator.apply("", serviceTicket) )
+      case _ if (clazz.getName.contains(BaseTicket.getClass.getName.replaceAll("\\$","")))=> cacheService.get[T](Keys.baseTicketGenerator.apply("", serviceTicket) )
       case _ => cacheService.get[T](Keys.ticketGenerator.apply("", ticket) )
     }
   }

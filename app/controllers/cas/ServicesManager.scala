@@ -79,18 +79,24 @@ case class DefaultServicesManagerImpl @Inject() (serviceRegistryDao: ServiceRegi
 
   Akka.system.scheduler.schedule(FiniteDuration(1,duration.SECONDS), FiniteDuration(5,duration.SECONDS)) {
     Logger.trace("Clearing chat status cache")
-    cacheLock.withGuard {
-      Try(this.load) match {
+      this.load.onComplete{
         case Success(_) if(services.isEmpty) =>
           val registeredService = RegisteredServiceImpl(serviceId = "http://google.com", name="1", theme="sso", id = 1, description = "dumb protected content", evaluationOrder = 0,
             logo = new URL("http://google.com"), logoutUrl = new URL("http://google.com"),publicKey=null)
-          services.put(1,registeredService)
+          cacheLock.withGuard {services.put(1,registeredService)}
+        case Success(_) =>
         case Failure(e) if(services.isEmpty) => Logger.error(s"Error clearing chat status cache", e)
           val registeredService = RegisteredServiceImpl(serviceId = "1", name="1", theme="sso", id = 1, description = "dumb protected content", evaluationOrder = 0,
             logo = new URL("http://google.com"), logoutUrl = new URL("http://google.com"),publicKey=null)
-          services.put(1,registeredService)
+          cacheLock.withGuard {services.put(1,registeredService)}
+        case Failure(e) => Logger.error(s"Erraor clearing chat status cache", e)
+        case _ if(services.isEmpty) =>
+          Logger.debug(s"services is still empty")
+          val registeredService = RegisteredServiceImpl(serviceId = "http://google.com", name="1", theme="sso", id = 1, description = "dumb protected content", evaluationOrder = 0,
+          logo = new URL("http://google.com"), logoutUrl = new URL("http://google.com"),publicKey=null)
+          cacheLock.withGuard {services.put(1,registeredService)}
+        case x => Logger.error(s"Erraodr clearing chat status cache ${x} with services ${services}")
       }
-    }
   }
 
   /** Map to store all services. */
@@ -134,16 +140,17 @@ case class DefaultServicesManagerImpl @Inject() (serviceRegistryDao: ServiceRegi
   /**
    * Load services that are provided by the DAO.
    */
-  private def load {
+  private def load: Future[Unit]= {
     val localServices: collection.mutable.Map[Long, RegisteredService] = collection.mutable.Map.empty[Long, RegisteredService]
 
     import scala.collection.JavaConversions._
-    this.serviceRegistryDao.load.map{ s =>
+    val f = serviceRegistryDao.load.map{ s =>
       val serviceMap = s.map{x => (x.getId, x)}.toMap[Long,RegisteredService]
       LOGGER.debug (s"Adding registered service ${serviceMap}")
-      this.services.putAll(serviceMap)
+      cacheLock.withGuard(this.services.putAll(serviceMap))
     }
     LOGGER.info (s"Loaded ${this.services.size} services.")
+    f
   }
 
   /**

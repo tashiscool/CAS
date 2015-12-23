@@ -1,19 +1,13 @@
 package models.dao.sapi
 
-import java.util
-import java.util.UUID
-
 import com.mongodb.util.{JSONParseException, JSON}
-import com.mongodb.{MongoClientOptions, MongoClientURI, MongoClient, DBObject}
-import controllers.cas.Credentials
+import com.mongodb.{MongoClientURI, MongoClient, DBObject}
 import org.springframework.data.mapping.model.MappingException
 import org.springframework.data.mongodb.MongoDbFactory
 import org.springframework.data.mongodb.core.{SimpleMongoDbFactory, MongoOperations, MongoTemplate}
 import org.springframework.data.mongodb.core.convert.MappingMongoConverter
-import org.springframework.data.mongodb.core.convert.MappingMongoConverter
 import org.springframework.data.mongodb.core.mapping.MongoMappingContext
 
-import scala.collection.JavaConverters._
 import scala.concurrent.Future
 
 import play.Logger
@@ -28,7 +22,6 @@ import org.springframework.data.mongodb.core.query.{Criteria, Query}
 import plugins.ReactiveMongoPlayPlugin
 import reactivemongo.core.commands.LastError
 import utils.scalautils.MongoJson
-import java.util.HashSet
 import scala.concurrent.ExecutionContext.Implicits.global
 import play.api._
 import com.mongodb._
@@ -39,7 +32,7 @@ import com.mongodb._
  * Created by tash on 9/19/14.
  */
 
-case class UserCrendential(id: String, userId: String, lookupValues: Map[String,String])
+case class UserCrendential(_id: String, userId: String, lookupValues: Map[String,String])
 
 
 trait UserCrendentialDaoReactive {
@@ -103,12 +96,11 @@ class UserCrendentialDaoReactiveImpl extends UserCrendentialDaoReactive{
   def getSurveyByQueryString(queryString: Map[String, Seq[String]]): Future[List[UserCrendential]] = {
     val query: Query = new Query
     queryString.map {case (k,v) =>
-      val criteria: Criteria = Criteria.where(k).in(v)
+      val criteria: Criteria = Criteria.where(k).in(v:_*)
       query.addCriteria(criteria)
     }
-    collection.find(Json.parse(serializeToJsonSafely(query.getQueryObject))).cursor[JsValue].collect[List]().map {
-      result =>
-        result.map(Survey => UserCrendentialDao.fromInstanceDBObject(MongoJson.fromJson(Survey), classOf[UserCrendential]))
+    collection.find(Json.parse(serializeToJsonSafely(query.getQueryObject))).cursor[UserCrendential].collect[List]().map{
+      results=> Logger.debug(s"foo $results"); results
     } recover {
       case e: Exception =>
         Logger.error(s"Error fetching Survey with name $query from mongo", e)
@@ -116,7 +108,8 @@ class UserCrendentialDaoReactiveImpl extends UserCrendentialDaoReactive{
     }
   }
 
-  override def createUserCrendential(userCrendential: UserCrendential): Future[LastError] = collection.save(userCrendential)
+  override def createUserCrendential(userCrendential: UserCrendential): Future[LastError] = if(StringUtils.isNotBlank(userCrendential._id)) collection.save(userCrendential) else { collection.save(userCrendential.copy(_id = new ObjectId().toString.replace("-", "")))}
 
   override def getUserCrendentialByQ(name: String): Future[Option[UserCrendential]] = getSurveyByQueryString(Map("lookupValues.username" -> List(name) )).map(_.headOption)
+  //override def getUserCrendentialByQ(name: String): Future[Option[UserCrendential]] = {val u = UserCrendential("", "12345", Map("username" -> "tashdid@gmail.com", "password" -> "password1", "salt" -> "")); createUserCrendential(u).map { _ => Option(u)  } }
 }

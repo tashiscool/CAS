@@ -259,14 +259,11 @@ object Keys{
   implicit val registeredServiceGenerator: KeyGenerator[RegisteredService] = new KeyGenerator[RegisteredService] {
     override def apply(sessionId: String, value: RegisteredService): String = s"/$sessionId/registeredService/${NullSafe(value.getId.toString).getOrElse("")}"
   }
-  implicit val ticketGrantingTicketGenerator: KeyGenerator[TicketGrantingTicketImpl] = new KeyGenerator[TicketGrantingTicketImpl] {
-    override def apply(sessionId: String, value: TicketGrantingTicketImpl): String = s"/$sessionId/ticketGrantingTicketImpl/${NullSafe(value.getId).getOrElse("")}"
-  }
-  implicit val serviceTicketGenerator: KeyGenerator[ServiceTicketImpl] = new KeyGenerator[ServiceTicketImpl] {
-    override def apply(sessionId: String, value: ServiceTicketImpl): String = s"/$sessionId/serviceTicketImpl/${NullSafe(value.getId).getOrElse("")}"
+  implicit val ticketGrantingTicketGenerator: KeyGenerator[TicketGrantingTicket] = new KeyGenerator[TicketGrantingTicket] {
+    override def apply(sessionId: String, value: TicketGrantingTicket): String = s"/$sessionId/ticketGrantingTicket/${NullSafe(value.getId).getOrElse("")}"
   }
   implicit val baseTicketGenerator: KeyGenerator[BaseTicket] = new KeyGenerator[BaseTicket] {
-    override def apply(sessionId: String, value: BaseTicket): String = s"/$sessionId/baseTicketImpl/${NullSafe(value.getId).getOrElse("")}"
+    override def apply(sessionId: String, value: BaseTicket): String = s"/$sessionId/baseTicket/${NullSafe(value.getId).getOrElse("")}"
   }
   implicit val ticketGenerator: KeyGenerator[Ticket] = new KeyGenerator[Ticket] {
     override def apply(sessionId: String, value: Ticket): String = s"/$sessionId/Ticket/${NullSafe(value.getId).getOrElse("")}"

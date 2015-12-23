@@ -87,3 +87,4 @@ trait BaseTicket extends Ticket with TicketState {
   def countOfUses:Int
 
 }
+object BaseTicket

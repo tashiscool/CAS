@@ -1,18 +1,19 @@
 package models.dao.sapi
 
+import java.text.SimpleDateFormat
 import java.util
-import java.util.UUID
+import java.util.{Date}
 
 import com.mongodb.util.{JSONParseException, JSON}
-import com.mongodb.{MongoClientOptions, MongoClientURI, MongoClient, DBObject}
-import org.springframework.data.authentication.UserCredentials
+import com.mongodb.{MongoClientURI, MongoClient, DBObject}
+import org.joda.time.format.ISODateTimeFormat
 import org.springframework.data.mapping.model.MappingException
 import org.springframework.data.mongodb.MongoDbFactory
 import org.springframework.data.mongodb.core.{SimpleMongoDbFactory, MongoOperations, MongoTemplate}
 import org.springframework.data.mongodb.core.convert.MappingMongoConverter
-import org.springframework.data.mongodb.core.convert.MappingMongoConverter
 import org.springframework.data.mongodb.core.mapping.MongoMappingContext
 
+import scala.collection.JavaConversions
 import scala.collection.JavaConverters._
 import scala.concurrent.Future
 
@@ -28,7 +29,6 @@ import org.springframework.data.mongodb.core.query.{Criteria, Query}
 import plugins.ReactiveMongoPlayPlugin
 import reactivemongo.core.commands.LastError
 import utils.scalautils.MongoJson
-import java.util.HashSet
 import scala.concurrent.ExecutionContext.Implicits.global
 import play.api._
 import com.mongodb._
@@ -38,7 +38,22 @@ import com.mongodb._
 /**
  * Created by tash on 9/19/14.
  */
-trait Value
+trait Value {
+  import scala.Predef._
+  override def toString = {
+    this match {
+      case v: SimpleObject => "\""+v.value +"\""
+      case v: ListObject =>val str = s"[${v.values.map(k => s"$k,").mkString(" ")}]"
+        val ind = str.lastIndexOf(",")
+        scala.collection.mutable.StringBuilder.newBuilder.append(str).replace(ind, ind + 1,"").toString()
+      case v: ComplexObject =>
+        val str = s"{ ${v.attribute.map{ case (k,v) => s""" "${k}":${v.toString},"""  }.mkString(" ") } }"
+        val ind = str.lastIndexOf(",")
+        scala.collection.mutable.StringBuilder.newBuilder.append(str).replace(ind, ind + 1,"").toString()
+      case _ => ""
+    }
+  }
+}
 
 case class ComplexObject(attribute: Map[String, Value]) extends Value
 case class SimpleObject(value: String) extends Value
@@ -63,7 +78,65 @@ object ValueHelper{
       case _ => List("")
     }
   }
+
+  def parse(v: JsValue) :Value = v match {
+    case v: JsObject => parse(v)
+    case v: JsArray => parse(v)
+    case v: JsString => SimpleObject(v.value)
+    case v: JsNumber => SimpleObject(v.value.toString())
+    case v: JsBoolean => SimpleObject(v.value.toString())
+    case JsNull => SimpleObject(null)
+    case v: JsUndefined => SimpleObject(null)
+  }
+  private def parse(map: JsObject) :ComplexObject = ComplexObject(
+    Map() ++ map.fields.map { p =>
+      val key = p._1
+      val value = p._2 match {
+        case v: JsObject =>
+          specialMongoJson(v).fold (
+            normal => parse(normal),
+            special => SimpleObject(special.toString)
+          )
+        case v: JsArray => { parse(v) }
+        case v: JsValue => { parse(v) }
+      }
+      (key, value)
+    })
+
+  val formater = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
+
+  private def specialMongoJson(json: JsObject) :Either[JsObject, Object] = {
+    if(json.fields.length > 0) {
+      json.fields(0) match {
+        case (k, v :JsString) if k == "$date" => Right(
+          try{
+            if(v.value.toLowerCase.contains("t")){
+              formater.parse(v.value)
+            }else{
+              new Date(v.value.toLong)
+            }
+          }catch{
+            case e: Exception => ISODateTimeFormat.dateTime().parseDateTime(v.value).toDate()
+          }
+        )
+        case (k, v :JsNumber) if k == "$date" => Right(new Date(v.value.toLong))
+        case (k, v :JsString) if k == "$oid" => Right(new ObjectId( v.value ))
+        case (k, v) if k.startsWith("$") => throw new RuntimeException("unsupported specialMongoJson " + k + " with v: " + v.getClass + ":" + v.toString())
+        case _ => Left(json)
+      }
+    } else Left(json)
+
+  }
+
+  private def parse(array: JsArray) :ListObject = {
+    val r = (scala.collection.JavaConversions.seqAsJavaList(array.value map { v =>
+      parse(v)
+    }))
+    ListObject(r.asScala.toSeq)
+  }
 }
+
+
 
 trait UserDaoReactive {
   def getUserById(principalId: String): Future[Option[User]]
@@ -78,7 +151,39 @@ trait UserDaoReactive {
 class UserDaoReactiveImpl extends UserDaoReactive{
   val conf = Play.configuration
   val DB_NAME = "db"
-  val userCollectionNameString: String = "users"
+  val userCollectionNameString: String = "UserAttributes"
+  implicit val userReads2 = new Reads[Map[String, Value]] {
+    override def reads(json: JsValue): JsResult[Map[String, Value]] = {
+      JsSuccess(json.asInstanceOf[JsObject].value.map{case(k,v) => (k,ValueHelper.parse(v))}).asInstanceOf[JsResult[Map[String, Value]]]
+    }
+  }
+  implicit val userWrites2 = new Writes[Map[String, Value]] {
+    override def writes(o: Map[String, Value]): JsValue = {
+      val foo = o.map{ case (k,v) => s""" "${k}":${v.toString},"""  }.toList
+      val str = s"{ ${foo.mkString(" ") } }"
+      val ind = str.lastIndexOf(",")
+      val forParse = scala.collection.mutable.StringBuilder.newBuilder.append(str).replace(ind, ind + 1,"").toString()
+      Json.parse(forParse)
+    }
+  }
+  implicit val userReads3 = new Reads[Value] {
+    override def reads(json: JsValue): JsResult[Value] = JsSuccess(ValueHelper.parse(json))
+  }
+  implicit val userWrites3 = new Writes[Value] {
+    override def writes(o: Value): JsValue = {
+      Json.parse(o.toString)
+    }
+  }
+  implicit val userReads4 = Json.writes[ListObject]
+  implicit val userWrites4 = Json.reads[ListObject]
+  implicit val userReads5 = Json.writes[ComplexObject]
+  implicit val userWrites5 = Json.reads[ComplexObject]
+  implicit val userReads6 = Json.writes[SimpleObject]
+  implicit val userWrites6 = Json.reads[SimpleObject]
+  implicit val userReads = Json.writes[User]
+  implicit val userWrites = Json.reads[User]
+
+
   object userDao {
     protected var mongoOperations: MongoOperations = null
     protected var converter: MappingMongoConverter = null
@@ -140,9 +245,13 @@ class UserDaoReactiveImpl extends UserDaoReactive{
     }
   }
 
-  override def getUserById(principalId: String): Future[Option[User]] = ???
+  val defaultUser = User("foobar", Map("qx" -> ComplexObject(Map("bax" -> ListObject(List(SimpleObject("foo"),SimpleObject("bar"))  )  )) ))
 
-  override def createUser(user: User): Future[LastError] = ???
+  override def getUserById(principalId: String): Future[Option[User]] = {
+    Future(Some(defaultUser))
+  }
+
+  override def createUser(user: User): Future[LastError] = collection.save(user)
 
   override def getUserByQ(name: String): Future[Option[User]] = ???
 }

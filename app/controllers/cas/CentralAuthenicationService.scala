@@ -205,6 +205,7 @@ class CentralAuthenticationServiceImpl @Inject() (val ticketGrantingTicketExpira
           val principalId: String = registeredService.getUsernameAttributeProvider.resolveUsername(principal, service)
           val modifiedPrincipal: Principal = this.principalFactory.createPrincipal(principalId, attributesToRelease)
           val builder: AuthenticationBuilder = DefaultAuthenticationBuilder.newInstance(authentication).setPrincipal(modifiedPrincipal)
+
           new ImmutableAssertion(builder.build, serviceTicket.getGrantingTicket.get.getChainedAuthentications, serviceTicket.getService, serviceTicket.isFromNewLogin)
         } finally {
           if (serviceTicket.isExpired) {

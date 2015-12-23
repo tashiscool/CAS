@@ -31,7 +31,7 @@ trait AuthenticationManager{
   def authenticate(credentials: Seq[Credentials]): Future[Authentication]
 }
 case class PolicyBasedAuthenticationManager @Inject() (handlers: Seq[AuthenticationHandler], handlerResolverMap: Map[AuthenticationHandler, PrincipalResolver],
-                                            authenticationMetaDataPopulators: List[AuthenticationMetaDataPopulator]) extends AuthenticationManager{
+                                                       authenticationMetaDataPopulators: List[AuthenticationMetaDataPopulator]) extends AuthenticationManager{
   val logger = LoggerFactory.getLogger(this.getClass)
 
   val serviceContextAuthenticationPolicyFactory = new AcceptAnyAuthenticationPolicyFactory
@@ -86,7 +86,7 @@ case class PolicyBasedAuthenticationManager @Inject() (handlers: Seq[Authenticat
       //TODO: this can be better written using for yield -tk
       builderF.flatMap{builder =>
         found = false
-       handlerResolverMap.map{ case (handler,resolver)  =>
+        handlerResolverMap.map{ case (handler,resolver)  =>
           if (handler.supports(credential)) {
             found = true
             try {
@@ -137,7 +137,8 @@ case class PolicyBasedAuthenticationManager @Inject() (handlers: Seq[Authenticat
         throw new AuthenticationException(builder.getFailures, builder.getSuccesses)
       }
       val auth = builder.build
-      if (authenticationPolicy.isSatisfiedBy(auth)) {
+
+      if (!authenticationPolicy.isSatisfiedBy(auth)) {
         throw new AuthenticationException(builder.getFailures, builder.getSuccesses)
       }
       builder
@@ -148,18 +149,21 @@ case class PolicyBasedAuthenticationManager @Inject() (handlers: Seq[Authenticat
     if (resolver.supports(credential)) {
       try {
         val pF: Future[Principal] = resolver.resolve(credential)
-        pF.map{p => logger.debug(s"${resolver} resolved ${p} from ${credential}"); Option(p)}
+        pF.map{p => logger.debug(s"${resolver} resolved ${p} from ${credential}"); Option(p)} recover { case e: Exception =>
+          logger.error(s"${resolver} failed to resolve principal from ${credential}", e); None
+        }
       }
       catch {
         case e: Exception => {
           logger.error(s"${resolver} failed to resolve principal from ${credential}", e)
+          Future.successful(None)
         }
       }
     }
     else {
       logger.warn(s"${handlerName} is configured to use ${resolver} but it does not support ${credential}, which suggests a configuration problem.")
+      Future.successful(None)
     }
-    return Future.successful(None)
   }
 }
 

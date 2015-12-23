@@ -98,7 +98,7 @@ class ChainingPrincipalResolver(chain: List[PrincipalResolver]) extends Principa
 case class PersonDirectoryPrincipalResolver(returnNullIfNoAttributes: Boolean = false,
                                             principalFactory: PrincipalFactory = new DefaultPrincipalFactory,
                                             principalAttributeName: String, userDaoReactive: UserDaoReactive ) extends PrincipalResolver {
-  val logger: Logger  = LoggerFactory.getLogger(this.getClass);
+  val logger: Logger  = play.Logger.underlying()
 
   /**
    * Resolves a principal from the given credential using an arbitrary strategy.
@@ -146,6 +146,7 @@ case class PersonDirectoryPrincipalResolver(returnNullIfNoAttributes: Boolean = 
         }
         this.principalFactory.createPrincipal(principalId, convertedAttributes)
       }
+    case x => logger.error(s"huh $x"); null
     }
   }
 
