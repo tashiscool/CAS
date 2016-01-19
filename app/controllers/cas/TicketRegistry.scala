@@ -2,7 +2,7 @@ package controllers.cas
 
 import com.google.inject.Inject
 import org.slf4j.LoggerFactory
-import utils.scalautils.{Keys, CacheOps, CacheService}
+import utils.scalautils.{KeyGenerator, Keys, CacheOps, CacheService}
 
 import scala.concurrent.Future
 import play.api.libs.concurrent.Execution.Implicits._
@@ -18,7 +18,7 @@ trait TicketRegistry extends Serializable{
    *
    * @param ticket The ticket we wish to add to the cache.
    */
-  def addTicket(ticket: Ticket):Future[Ticket]
+  def addTicket[T <: Ticket](ticket: T)(implicit keyGenerator: KeyGenerator[T]):Future[Ticket]
 
   /**
    * Retrieve a ticket from the registry. If the ticket retrieved does not
@@ -28,15 +28,7 @@ trait TicketRegistry extends Serializable{
    * @param clazz The expected class of the ticket we wish to retrieve.
    * @return the requested ticket.
    */
-  def getTicket[T <: Ticket](ticketId: String, clazz: Class[_ <: Ticket]): Future[Option[T]]
-
-  /**
-   * Retrieve a ticket from the registry.
-   *
-   * @param ticketId the id of the ticket we wish to retrieve
-   * @return the requested ticket.
-   */
-  def getTicket(ticketId: String): Future[Option[Ticket]]
+  def getTicket[T <: Ticket](ticketId: String)(implicit keyGenerator: KeyGenerator[T]): Future[Option[T]]
 
   /**
    * Remove a specific ticket from the registry.
@@ -66,13 +58,18 @@ class MemcacheTicketRegistry @Inject() (val cacheService: CacheService) extends 
    *
    * @param ticket The ticket we wish to add to the cache.
    */
-  override def addTicket(ticket: Ticket): Future[Ticket] ={
-    ticket match{
-      case tgt:TicketGrantingTicket=> val f = CacheOps.caching("")(tgt); f.onComplete(x => logger.debug(s"ticketgt added to memcache $ticket $x")); f
-      case st:ServiceTicket=> val f = CacheOps.caching("")(st); f.onComplete(_ => logger.debug(s"sticket added to memcache $ticket")); f
-      case st:BaseTicket=> val f = CacheOps.caching("")(st); f.onComplete(_ => logger.debug(s"bticket added to memcache $ticket")); f
-      case _ => val f = CacheOps.caching("")(ticket); f.onComplete(_ => logger.debug(s"ticket added to memcache $ticket")); f
-    }
+  override def addTicket[T <: Ticket](ticket: T)(implicit keyGenerator: KeyGenerator[T]):Future[Ticket] ={
+    //We shouldn't need this
+//    ticket match{
+//      case tgt:TicketGrantingTicket=> val f = CacheOps.caching("")(tgt); f.onComplete(x => logger.debug(s"ticketgt added to memcache $ticket $x")); f
+//      case st:ServiceTicket=> val f = CacheOps.caching("")(st); f.onComplete(_ => logger.debug(s"sticket added to memcache $ticket")); f
+//      case st:BaseTicket=> val f = CacheOps.caching("")(st); f.onComplete(_ => logger.debug(s"bticket added to memcache $ticket")); f
+//      case _ => val f = CacheOps.caching("")(ticket); f.onComplete(_ => logger.debug(s"ticket added to memcache $ticket")); f
+//    }
+
+    val f = CacheOps.caching("")(ticket)
+    f.onComplete(_ => logger.debug(s"ticket added to memcache $ticket"))
+    f
   }
 
   /**
@@ -91,8 +88,9 @@ class MemcacheTicketRegistry @Inject() (val cacheService: CacheService) extends 
    * @param clazz The expected class of the ticket we wish to retrieve.
    * @return the requested ticket.
    */
-  override def getTicket[T <: Ticket](ticketId: String, clazz: Class[_ <: Ticket]): Future[Option[T]] = {
+  override def getTicket[T <: Ticket](ticketId: String)(implicit keyGenerator: KeyGenerator[T]): Future[Option[T]] = {
 
+   import TicketTransformers._
    val ticket = new Ticket {
       override def getId: String = ticketId
       override def getGrantingTicket: Option[TicketGrantingTicket] = ???
@@ -100,26 +98,20 @@ class MemcacheTicketRegistry @Inject() (val cacheService: CacheService) extends 
       override def getCountOfUses: Int = ???
       override def getCreationTime: Long = ???
    }
-    val serviceTicket = new ServiceTicketImpl(expirationPolicy = null, id = ticketId, ticketGrantingTicket = None,service = null, fromNewLogin = false)
-    val ticketGrantingticket = new TicketGrantingTicketImpl(expirationPolicy = null, id = ticketId, ticketGrantingTicket = None, authentication = null, proxiedBy = None)
 
+    val serviceTicket : ServiceTicket = ticket
+    val ticketGrantingTicket : TicketGrantingTicket = ticket
 
-    clazz match{
-      case _ if (clazz.getName.contains(TicketGrantingTicket.getClass.getName.replaceAll("\\$","")) ) => cacheService.get[T](Keys.ticketGrantingTicketGenerator.apply("", ticketGrantingticket) )
-      case _ if (clazz.getName.contains(ServiceTicket.getClass.getName.replaceAll("\\$","")))=> cacheService.get[T](Keys.serviceTickGenerator.apply("", serviceTicket) )
-      case _ if (clazz.getName.contains(BaseTicket.getClass.getName.replaceAll("\\$","")))=> cacheService.get[T](Keys.baseTicketGenerator.apply("", serviceTicket) )
-      case _ => cacheService.get[T](Keys.ticketGenerator.apply("", ticket) )
+    if(ticketId.contains("TGT")){
+      cacheService.get[T](Keys.ticketGrantingTicketGenerator.apply("", ticketGrantingTicket) )
+    }else if (ticketId.contains("ST")){
+      cacheService.get[T](Keys.baseTicketGenerator.apply("", serviceTicket) )
+    }else{
+      cacheService.get[T](Keys.ticketGenerator.apply("", ticket) )
     }
+
   }
-
-
-  /**
-   * Retrieve a ticket from the registry.
-   *
-   * @param ticketId the id of the ticket we wish to retrieve
-   * @return the requested ticket.
-   */
-  override def getTicket(ticketId: String): Future[Option[Ticket]] = cacheService.get[Ticket](ticketId)
+  
 
   /**
    * Remove a specific ticket from the registry.
@@ -133,5 +125,14 @@ class MemcacheTicketRegistry @Inject() (val cacheService: CacheService) extends 
     val f = cacheService.remove(ticketId);
     f.onComplete(_ => logger.debug(s"removing $ticketId"));
     f
+  }
+}
+
+object TicketTransformers {
+  implicit def asServiceTicket(ticket: Ticket) : ServiceTicket = {
+    new ServiceTicketImpl(expirationPolicy = null, id = ticket.getId, ticketGrantingTicket = None,service = null, fromNewLogin = false)
+  }
+  implicit def asTicketGrantingTicket(ticket: Ticket) : TicketGrantingTicket = {
+    new TicketGrantingTicketImpl(expirationPolicy = null, id = ticket.getId, ticketGrantingTicket = None, authentication = null, proxiedBy = None)
   }
 }

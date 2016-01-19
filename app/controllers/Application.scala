@@ -39,7 +39,7 @@ class Application @Inject()(val casService: CentralAuthenicationService, val ser
       if(StringUtils.isBlank(tgtId)){
         gatewayRequestCheck(request)
       }else {
-        val someTicketFuture:Future[Option[TicketGrantingTicket]] = casService.getTicket(tgtId, classOf[TicketGrantingTicket])
+        val someTicketFuture:Future[Option[TicketGrantingTicket]] = casService.getTicket[TicketGrantingTicket](tgtId  )
         someTicketFuture.flatMap{ someTicket =>
           someTicket match{
             case Some(ticket) if(!ticket.isExpired) => hasServiceCheck(request)
@@ -108,7 +108,7 @@ class Application @Inject()(val casService: CentralAuthenicationService, val ser
   }
 
   def viewGenericLoginSuccess = {request:Request[AnyContent] =>
-    casService.getTicket(getTgtId(request), classOf[TicketGrantingTicket]).map{
+    casService.getTicket[TicketGrantingTicket](getTgtId(request)).map{
       case Some(ticket)=> Ok(genericSuccessView(NullSafe(ticket.getAuthentication.getPrincipal).getOrElse(NullPrincipal())))
       case _ => Ok(genericSuccessView(NullPrincipal()))
     }
@@ -143,7 +143,7 @@ class Application @Inject()(val casService: CentralAuthenicationService, val ser
 
           try {
             val credentialFuture: Future[Option[Credentials]] = Future.successful(Some(UsernamePasswordCredential(UUID.randomUUID().toString, credentials.username, credentials.password)))
-            val someTicketFuture:Future[Option[TicketGrantingTicket]] = casService.getTicket(ticketGrantingTicket, classOf[TicketGrantingTicket])
+            val someTicketFuture:Future[Option[TicketGrantingTicket]] = casService.getTicket[TicketGrantingTicket](ticketGrantingTicket)
 
             val foo = serviceFuture.flatMap { serviceO =>
               credentialFuture.flatMap { credentialO =>

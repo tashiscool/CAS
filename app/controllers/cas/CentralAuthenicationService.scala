@@ -6,9 +6,11 @@ import javax.sql.RowSet
 import com.google.inject.Inject
 import org.apache.commons.lang3.StringUtils
 import org.slf4j.{LoggerFactory, Logger}
+import utils.scalautils.KeyGenerator
 
 import scala.concurrent.Future
 import play.api.libs.concurrent.Execution.Implicits._
+import utils.scalautils.Keys._
 
 /**
  * Created by tash on 11/19/15.
@@ -40,7 +42,7 @@ trait CentralAuthenicationService  extends Serializable {
    * @return the ticket object
    * @since 4.1.0
    */
-  def getTicket[T <: Ticket ](ticketId: String, clazz: Class[T]): Future[Option[T]]
+  def getTicket[T <: Ticket](ticketId: String)(implicit keyGenerator: KeyGenerator[T]): Future[Option[T]]
 
   /**
    * Retrieve a collection of tickets from the underlying ticket registry.
@@ -139,7 +141,7 @@ class CentralAuthenticationServiceImpl @Inject() (val ticketGrantingTicketExpira
       authenticationF.flatMap{ authentication =>
         val ticketGrantingTicket = TicketGrantingTicketImpl(id = idForTicket, proxiedBy = None, ticketGrantingTicket = None,
           authentication =  authentication, expirationPolicy =ticketGrantingTicketExpirationPolicy)
-        this.ticketRegistry.addTicket(ticketGrantingTicket).map{
+        this.ticketRegistry.addTicket[TicketGrantingTicket](ticketGrantingTicket).map{
           _ => ticketGrantingTicket
         }
       }
@@ -156,14 +158,14 @@ class CentralAuthenticationServiceImpl @Inject() (val ticketGrantingTicketExpira
 
   override def getTickets(evaluate: (AnyRef, String, Int) => Boolean): Ticket = ???
 
-  override def getTicket[T <: Ticket](ticketId: String, clazz: Class[T]): Future[Option[T]] = {
+  override def getTicket[T <: Ticket](ticketId: String)(implicit keyGenerator: KeyGenerator[T]): Future[Option[T]] = {
     if(StringUtils.isBlank(ticketId))
       throw new RuntimeException("ticketId cannot be blank")
-    val ticketOptionFuture: Future[Option[Ticket]] = this.ticketRegistry.getTicket(ticketId, clazz)
+    val ticketOptionFuture: Future[Option[Ticket]] = this.ticketRegistry.getTicket[T](ticketId)
     ticketOptionFuture.map{ case ticketOption =>
       ticketOption match { case Some(ticket) =>
         if (ticket == null) {
-          logger.debug(s"Ticket [${ticketId}] by type [${clazz.getSimpleName}] cannot be found in the ticket registry." )
+          logger.debug(s"Ticket [${ticketId}] by type cannot be found in the ticket registry." )
           None
         }
         ticket match {
@@ -182,7 +184,7 @@ class CentralAuthenticationServiceImpl @Inject() (val ticketGrantingTicketExpira
     val registeredServiceFuture: Future[RegisteredService] = this.servicesManager.findServiceBy(service)
     registeredServiceFuture.flatMap{registeredService =>
       verifyRegisteredServiceProperties(registeredService, service)
-      val serviceTicketOptionFuture: Future[Option[ServiceTicket]] = this.ticketRegistry.getTicket(serviceTicketId, classOf[ServiceTicket])
+      val serviceTicketOptionFuture: Future[Option[ServiceTicket]] = this.ticketRegistry.getTicket[ServiceTicket](serviceTicketId)
       serviceTicketOptionFuture.map { case Some(serviceTicketOption) =>
         val serviceTicket = serviceTicketOption
         try {
@@ -221,7 +223,7 @@ class CentralAuthenticationServiceImpl @Inject() (val ticketGrantingTicketExpira
   override def destroyTicketGrantingTicket(ticketGrantingTicketId: String): Future[List[LogoutRequest]] = {
     try {
       logger.debug(s"Removing ticket [{ticketGrantingTicketId}] from registry...")
-      val ticketFuture: Future[TicketGrantingTicket] = getTicket(ticketGrantingTicketId, classOf[TicketGrantingTicket]).map(_.getOrElse(null))
+      val ticketFuture: Future[TicketGrantingTicket] = getTicket[TicketGrantingTicket](ticketGrantingTicketId).map(_.getOrElse(null))
       logger.debug("Ticket found. Processing logout requests and then deleting the ticket...")
       ticketFuture.map { ticket =>
         val logoutRequests: List[LogoutRequest] = this.logOutManager.performLogout(ticket)
@@ -240,7 +242,7 @@ class CentralAuthenticationServiceImpl @Inject() (val ticketGrantingTicketExpira
   override def grantServiceTicket(ticketGrantingTicketId: String, service: Service): Future[ServiceTicket] = this.grantServiceTicket(ticketGrantingTicketId, service, List.empty[Credentials].toSeq)
 
   override def grantServiceTicket(ticketGrantingTicketId: String, service: Service, credentials: Seq[Credentials]): Future[ServiceTicket] = {
-    val ticketGrantingTicketfuture: Future[TicketGrantingTicket] = getTicket(ticketGrantingTicketId, classOf[TicketGrantingTicket]).map(_.getOrElse(null))
+    val ticketGrantingTicketfuture: Future[TicketGrantingTicket] = getTicket[TicketGrantingTicket](ticketGrantingTicketId).map(_.getOrElse(null))
     ticketGrantingTicketfuture.flatMap{ticketGrantingTicket =>
       val registeredServiceFuture: Future[RegisteredService] = this.servicesManager.findServiceBy(service)
       registeredServiceFuture.map{ registeredService=>
@@ -312,7 +314,7 @@ class CentralAuthenticationServiceImpl @Inject() (val ticketGrantingTicketExpira
         val ticketId: String = DefaultUniqueTicketIdGenerator(DefaultLongNumericGenerator(0), DefaultRandomStringGenerator(35), "").getNewTicketId(ticketPrefix)
         val serviceTicket: ServiceTicket = ticketGrantingTicket.grantServiceTicket(ticketId, service, this.serviceTicketExpirationPolicy, currentAuthentication != null)._1
 
-        this.ticketRegistry.addTicket(serviceTicket)
+        this.ticketRegistry.addTicket[ServiceTicket](serviceTicket)
 
         logger.info(s"Granted ticket [${serviceTicket.getId}] for service [${service.getId}] for user [${principal.getId}]")
         serviceTicket
@@ -321,7 +323,7 @@ class CentralAuthenticationServiceImpl @Inject() (val ticketGrantingTicketExpira
   }
 
   override def delegateTicketGrantingTicket(serviceTicketId: String, credentials: Seq[Credentials] ): Future[TicketGrantingTicket] = {
-    val serviceTicketFuture:Future[Option[ServiceTicket]] = this.ticketRegistry.getTicket(serviceTicketId, classOf[ServiceTicket])
+    val serviceTicketFuture:Future[Option[ServiceTicket]] = this.ticketRegistry.getTicket[ServiceTicket](serviceTicketId)
     serviceTicketFuture.flatMap { case Some(serviceTicket) =>
       if (serviceTicket == null || serviceTicket.isExpired) {
         logger.debug(s"ServiceTicket [${serviceTicketId}] has expired or cannot be found in the ticket registry")
@@ -344,8 +346,8 @@ class CentralAuthenticationServiceImpl @Inject() (val ticketGrantingTicketExpira
             val proxyGrantingTicket: TicketGrantingTicket = serviceTicket.grantTicketGrantingTicket(pgtId, authentication, this.ticketGrantingTicketExpirationPolicy)._1
 
             logger.debug(s"Generated proxy granting ticket [${proxyGrantingTicket}] based off of [${serviceTicketId}]")
-            proxyGrantingTicket match {
-              case proxyGTicket:Ticket =>this.ticketRegistry.addTicket(proxyGTicket)
+            this.ticketRegistry.addTicket[TicketGrantingTicket](proxyGrantingTicket).onComplete{
+              case _ => logger.debug(s"add ticket ${proxyGrantingTicket} to registry")
             }
             proxyGrantingTicket
           }
